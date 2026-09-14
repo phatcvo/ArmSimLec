@@ -160,7 +160,7 @@
   <div class="brand">ARM</div>
   <div class="htxt">
     <h1>Mô phỏng động học cánh tay robot</h1>
-    <p>Công cụ minh họa cho bài giảng Kỹ thuật Robot · mã nguồn mở (MIT)</p>
+    <p>Minh họa cho bài giảng Kỹ thuật Robot</p>
   </div>
   <div class="hspacer"></div>
   <div class="htag">2R / 3R · Forward · Inverse · Trajectory</div>
@@ -318,8 +318,8 @@
 </div>
 
 <footer>
-  <div class="l"><a href="https://github.com/phatcvo/ArmSimLec" style="color:inherit">ArmSimLec</a> · MIT License</div>
-  <div class="r">phatcv · v1.16</div>
+  <div class="l"><a href="https://github.com/phatcvo/" style="color:inherit">phatcvo</a></div>
+  <div class="r">v1.16</div>
 </footer>
 
 <script>
@@ -641,13 +641,13 @@ function buildDHFormulas(){const Z="0",O="1";
 function rotNumHTML(){const t=S.th[0],c=Math.cos(t),s=Math.sin(t);
   return TX("Thay số với khớp 1 hiện tại:")+
     LN("Rot("+M("$z")+", "+M("$θ_1")+" = "+fD(t)+") = "+BM([[fN(c),fN(-s),"0"],[fN(s),fN(c),"0"],["0","0","1"]]))+
-    TX("⇒ trùng khối 3×3 góc trên-trái của A₁ (thẻ “Ma trận thuần nhất”).");}
+    TX("⇒ trùng khối 3×3 góc trên-trái của A₁ (“Ma trận thuần nhất”).");}
 
 function dhSubHTML(){let h="";
   for(let i=0;i<S.dof;i++){const j=i+1,c=Math.cos(S.th[i]),s=Math.sin(S.th[i]);
     h+=LN(`Hàng ${j}:&ensp;`+M(`$c_${j}`)+" = cos("+fD(S.th[i])+") = "+fN(c)+",&ensp;"+M(`$s_${j}`)+" = "+fN(s)+
       "&emsp;⇒&emsp;"+M(`$a_${j}$c_${j}`)+" = <b>"+fN(S.a[i]*c)+"</b>,&ensp;"+M(`$a_${j}$s_${j}`)+" = <b>"+fN(S.a[i]*s)+"</b>");}
-  return h+TX("Điền các số này vào mẫu Aᵢ ở trên ⇒ được đúng các ma trận "+(S.dof===3?"A₁, A₂, A₃":"A₁, A₂")+" ở thẻ “Ma trận thuần nhất”.");}
+  return h+TX("Điền các số này vào mẫu Aᵢ ở trên ⇒ được đúng các ma trận "+(S.dof===3?"A₁, A₂, A₃":"A₁, A₂")+" ở “Ma trận thuần nhất”.");}
 
 function fkHTML(){
   const n=S.dof,a=S.a,th=S.th,k=["1","12","123"][n-1];
