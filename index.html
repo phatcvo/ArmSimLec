@@ -1,0 +1,2269 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArmSimLec · Mô phỏng động học cánh tay robot</title>
+<style>
+  :root{
+    --blue:#1668A6; --sky:#3EA6DE; --deep:#0E3D63; --pale:#E7F1FA;
+    --amber:#E9873A; --line:#CFDDEA; --muted:#5E7690; --ink:#12324A;
+    --paper:#F4F8FC; --panel:#EEF5FB; --white:#fff;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Segoe UI",system-ui,Arial,sans-serif;color:var(--ink);background:var(--paper);}
+  header{background:var(--pale);border-bottom:3px solid var(--sky);
+    display:flex;align-items:center;gap:14px;padding:12px 22px;}
+  .brand{display:flex;align-items:center;justify-content:center;
+    width:52px;height:52px;border-radius:11px;background:var(--blue);
+    color:#fff;font-weight:800;font-size:15px;letter-spacing:.5px;flex:none;
+    box-shadow:0 2px 6px rgba(22,104,166,.35);}
+  .htxt h1{margin:0;font-size:19px;font-weight:700;color:var(--deep);}
+  .htxt p{margin:3px 0 0;font-size:12.5px;color:var(--blue);}
+  .hspacer{flex:1;}
+  .htag{font-family:"Courier New",monospace;font-size:11.5px;color:var(--muted);
+    border:1px solid var(--line);border-radius:20px;padding:5px 11px;background:#fff;}
+  .wrap{display:flex;flex-wrap:wrap;gap:16px;padding:16px;align-items:flex-start;}
+  .left{flex:0 1 auto;min-width:0;display:flex;flex-direction:column;gap:14px;}
+  .stage{background:#fff;border:1px solid var(--line);border-radius:12px;
+    box-shadow:0 3px 12px rgba(14,61,99,.08);padding:10px;}
+  canvas{display:block;border-radius:8px;background:#fff;touch-action:none;cursor:crosshair;}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);padding:6px 6px 2px;}
+  .legend i{display:inline-block;width:14px;height:5px;border-radius:3px;vertical-align:middle;margin-right:4px;}
+  .side{flex:1;min-width:330px;display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;}
+  .side>.col{flex:1 1 440px;min-width:0;display:flex;flex-direction:column;gap:14px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;
+    box-shadow:0 3px 12px rgba(14,61,99,.06);padding:14px 16px;}
+  .eyebrow{display:flex;align-items:center;gap:8px;margin:0 0 11px;font-size:12px;font-weight:700;
+    color:var(--blue);text-transform:uppercase;letter-spacing:1px;font-family:"Courier New",monospace;}
+  .eyebrow::before{content:"";width:16px;height:3px;background:var(--sky);border-radius:2px;flex:none;}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;}
+  .tab{flex:1;min-width:96px;border:1px solid var(--line);border-radius:8px;padding:10px 8px;font-size:14px;
+    font-weight:600;background:#fff;color:var(--deep);cursor:pointer;transition:.15s;}
+  .tab.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .rowbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px;align-items:center;}
+  .btn{border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13px;background:#fff;
+    color:var(--deep);cursor:pointer;font-weight:600;}
+  .btn.on{background:var(--sky);color:#fff;border-color:var(--sky);}
+  .btn.amber{background:var(--amber);color:#fff;border-color:var(--amber);}
+  .btn.sel{outline:2px solid var(--blue);outline-offset:1px;}
+  label.chk{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;}
+  .slider{margin:9px 0;}
+  .slider .lab{display:flex;justify-content:space-between;font-size:13px;margin-bottom:2px;}
+  .slider .lab b{color:var(--deep);}
+  .slider .val{font-family:"Courier New",monospace;font-weight:700;color:var(--blue);}
+  input[type=range]{width:100%;accent-color:var(--blue);height:22px;}
+  input[type=range].c2{accent-color:var(--sky);}
+  input[type=range].c3{accent-color:var(--amber);}
+  input[type=range].cp{accent-color:var(--deep);}
+  input[type=range]:disabled{opacity:.45;}
+  table.dh{width:100%;border-collapse:collapse;font-size:13px;}
+  table.dh th,table.dh td{border:1px solid var(--line);padding:6px 4px;text-align:center;font-family:"Courier New",monospace;}
+  table.dh th{background:var(--blue);color:#fff;font-weight:700;}
+  table.dh tr.cur td{background:var(--pale);font-weight:700;color:var(--deep);}
+  table.dh td.th{color:var(--blue);font-weight:700;}
+  .mat{font-family:"Courier New",monospace;font-size:12.5px;line-height:1.55;color:var(--ink);
+    background:var(--panel);border-radius:8px;padding:9px 12px;overflow-x:auto;white-space:nowrap;}
+  .mat .p{color:var(--amber);font-weight:700;}
+  .amx{display:flex;gap:10px;flex-wrap:wrap;}
+  .amx .amitem{flex:1;min-width:150px;}
+  .amx .amt{font-family:"Courier New",monospace;font-size:12px;font-weight:700;margin-bottom:3px;}
+  .pose{display:flex;gap:10px;flex-wrap:wrap;margin-top:9px;}
+  .stat{flex:1;min-width:90px;background:var(--panel);border-radius:8px;padding:8px 10px;text-align:center;}
+  .stat .k{font-size:11px;color:var(--muted);}
+  .stat .v{font-size:18px;font-weight:700;color:var(--deep);font-family:"Courier New",monospace;}
+  .hint{font-size:12.5px;color:var(--muted);margin-top:9px;line-height:1.55;}
+  .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700;}
+  .ok{background:#E3F1EA;color:#1E7A54;} .bad{background:#FBE7E4;color:#B23A2A;}
+  details summary{cursor:pointer;font-weight:700;color:var(--blue);font-size:13px;}
+  details ul{margin:8px 0 0;padding-left:18px;font-size:12.5px;color:var(--muted);line-height:1.6;}
+  /* ---- công thức & cách tính ---- */
+  @media (min-width:1100px) and (min-height:700px){.left{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;}}
+  .fx{font-family:"Cambria Math",Cambria,"STIX Two Math","Times New Roman",serif;font-size:14.5px;line-height:1.8;color:var(--ink);}
+  .fx i{font-style:italic;}
+  .fx b{color:var(--blue);}
+  .tx{font-family:"Segoe UI",system-ui,Arial,sans-serif;font-size:12.5px;line-height:1.55;color:var(--muted);white-space:normal;}
+  .tx .fx,.task .fx{font-size:13.5px;line-height:1.4;}
+  .fxbox{background:var(--panel);border-radius:8px;padding:8px 12px;margin:6px 0;overflow-x:auto;}
+  .ln{white-space:nowrap;}
+  .fr{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;line-height:1.3;margin:0 2px;}
+  .fr>span:first-child{border-bottom:1px solid currentColor;padding:0 4px 1px;}
+  .fr>span:last-child{padding:1px 4px 0;}
+  .bm{display:inline-grid;grid-template-columns:repeat(4,auto);column-gap:16px;position:relative;
+    padding:1px 11px;margin:4px 0;vertical-align:middle;text-align:center;line-height:1.6;}
+  .bm::before,.bm::after{content:"";position:absolute;top:0;bottom:0;width:5px;border:1.5px solid var(--ink);}
+  .bm::before{left:0;border-right:0;} .bm::after{right:0;border-left:0;}
+  .bm .p{color:var(--amber);font-weight:700;}
+  .bm .r{color:var(--blue);}
+  .cr,.fx .cr{color:var(--blue);} .cp,.fx .cp{color:var(--amber);}
+  .cbeta,.fx .cbeta{color:#7B4FB8;} .cpsi,.fx .cpsi{color:#1E7A54;}
+  .method.first{margin-top:6px;padding-top:0;border-top:0;}
+  .fxbox>.tx+.tx{margin-top:3px;}
+  .tx .bm{line-height:1.15;column-gap:7px;padding:0 7px;margin:0 2px;font-size:12.5px;}
+  .rotwhy{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;}
+  .rotwhy svg{flex:none;max-width:100%;height:auto;}
+  .rotwhy>div:last-child{flex:1;min-width:210px;}
+  .rotwhy>div>.tx+.tx{margin-top:6px;}
+  #ikFig{flex:none;max-width:100%;line-height:0;}
+  .explain{margin:2px 0 4px;}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 4px;margin:6px 0;}
+  .flow .chip{background:#fff;border:1px solid var(--line);border-radius:14px;padding:3px 9px;font-size:12px;
+    color:var(--deep);white-space:nowrap;}
+  .flow .chip.opt{border-style:dashed;color:var(--muted);}
+  .flow .chip.q{border-color:var(--amber);}
+  .flow .arr{color:var(--sky);font-weight:700;}
+  .elem{display:flex;flex-wrap:wrap;gap:4px 20px;background:var(--panel);border-radius:8px;padding:6px 12px;margin-top:6px;}
+  .method{font-size:13px;font-weight:700;color:var(--deep);margin:14px 0 4px;padding-top:10px;border-top:1px dashed var(--line);}
+  .method small{font-weight:400;color:var(--muted);}
+  .task{font-size:12.5px;line-height:1.6;color:var(--ink);background:var(--pale);border-left:3px solid var(--sky);
+    border-radius:4px;padding:7px 10px;}
+  .step{display:flex;gap:8px;align-items:flex-start;margin:5px 0;}
+  .step .n{flex:none;width:20px;height:20px;margin-top:4px;border-radius:50%;background:var(--blue);color:#fff;
+    font:700 11px "Segoe UI",system-ui,sans-serif;display:flex;align-items:center;justify-content:center;}
+  .step>div{min-width:0;flex:1;}
+  .sols{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+  .solc{flex:1;min-width:150px;border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:#fff;}
+  .solc.cur{border-color:var(--blue);box-shadow:inset 3px 0 0 var(--blue);background:var(--pale);}
+  .solc .t{font:700 11.5px "Segoe UI",system-ui,sans-serif;color:var(--muted);}
+  .good,.fx .good{color:#1E7A54;font-weight:700;} .fail,.fx .fail{color:#B23A2A;font-weight:700;}
+  /* ---- động học nghịch từng bước ---- */
+  .btn:disabled{opacity:.45;cursor:default;}
+  .snav{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px;}
+  .snav .scount{font:700 13px "Courier New",monospace;color:var(--blue);padding:0 4px;}
+  .snav .grow{flex:1;}
+  .stepper{display:flex;flex-wrap:wrap;gap:8px 14px;margin-bottom:8px;padding-bottom:10px;border-bottom:1px dashed var(--line);}
+  .sgroup{display:flex;flex-direction:column;gap:4px;}
+  .sgt{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.3px;}
+  .spills{display:flex;flex-wrap:wrap;gap:4px;}
+  .spill{border:1px solid var(--line);background:#fff;color:var(--deep);border-radius:14px;padding:2px 9px 2px 3px;
+    font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+  .spill .k{width:18px;height:18px;border-radius:50%;background:var(--pale);color:var(--blue);
+    font:700 10.5px "Segoe UI",system-ui,sans-serif;display:inline-flex;align-items:center;justify-content:center;}
+  .spill.done{background:var(--pale);} .spill.done .k{background:var(--sky);color:#fff;}
+  .spill.cur{background:var(--blue);color:#fff;border-color:var(--blue);} .spill.cur .k{background:#fff;color:var(--blue);}
+  .spill:disabled{opacity:.45;border-style:dashed;cursor:default;}
+  .shead{margin:2px 0 6px;}
+  .sph{font-size:11.5px;color:var(--sky);font-weight:700;text-transform:uppercase;letter-spacing:.8px;}
+  .stitle{font-size:15px;font-weight:700;color:var(--deep);margin-top:2px;}
+  .onfig{font-size:12.5px;color:var(--deep);background:#FFF6EC;border-left:3px solid var(--amber);border-radius:4px;
+    padding:6px 10px;margin-top:8px;line-height:1.55;}
+  table.dh td.unk{color:var(--amber);font-weight:700;}
+  .elem .tx{font-size:12px;}
+  footer{padding:12px 22px;border-top:1px solid var(--line);background:#fff;
+    display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;}
+  footer .l{font-size:12.5px;color:var(--deep);font-weight:600;}
+  footer .r{font-size:11.5px;color:var(--muted);font-family:"Courier New",monospace;}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">ARM</div>
+  <div class="htxt">
+    <h1>Mô phỏng động học cánh tay robot</h1>
+    <p>Công cụ minh họa cho bài giảng Kỹ thuật Robot · mã nguồn mở (MIT)</p>
+  </div>
+  <div class="hspacer"></div>
+  <div class="htag">2R / 3R · Forward · Inverse · Trajectory</div>
+</header>
+
+<div class="wrap">
+  <div class="left">
+    <div class="stage">
+      <canvas id="cv" width="660" height="560"></canvas>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <div class="card">
+      <div class="eyebrow">Biến khớp &amp; kích thước khâu</div>
+      <div id="sliders"></div>
+    </div>
+  </div>
+
+  <div class="side">
+   <div class="col">
+    <div class="card">
+      <div class="eyebrow">Chế độ mô phỏng</div>
+      <div class="tabs">
+        <button class="tab active" data-mode="fk">Động học thuận</button>
+        <button class="tab" data-mode="ik">Động học nghịch</button>
+        <button class="tab" id="trajTab" data-mode="traj">Quỹ đạo</button>
+        <button class="tab" data-mode="jac">Jacobian · lặp số</button>
+      </div>
+      <div class="rowbtns">
+        <button class="btn on" id="btn2r">2 khâu (2R)</button>
+        <button class="btn" id="btn3r">3 khâu (3R)</button>
+        <button class="btn" id="btnElbow">ELBOW 6 khâu (3D)</button>
+        <button class="btn" id="btnStanford">Stanford 6 khâu (3D)</button>
+        <label class="chk"><input type="checkbox" id="showFrames"> Hệ tọa độ khâu</label>
+        <label class="chk"><input type="checkbox" id="showArcs" checked> Cung góc θ</label>
+      </div>
+      <div class="rowbtns" id="ikctrl" style="display:none">
+        <button class="btn amber" id="elbowBtn">Cấu hình: elbow-up</button>
+        <span class="badge ok" id="reachBadge">Trong tầm với</span>      </div>
+      <div class="rowbtns" id="elctrl" style="display:none">
+        <button class="btn amber" id="brArm">Vai: trái</button>
+        <button class="btn amber" id="brElb">Khuỷu: lên</button>
+        <button class="btn amber" id="brWr">Cổ tay: thuận</button>
+        <button class="btn" id="viewReset">Đặt lại góc nhìn</button>
+        <span class="badge ok" id="elReach">Trong tầm với</span>
+      </div>
+      <div class="rowbtns" id="stctrl" style="display:none">
+        <button class="btn amber" id="stSh">Vai: phải</button>
+        <button class="btn amber" id="stWr">Cổ tay: thuận</button>
+        <button class="btn" id="stView">Đặt lại góc nhìn</button>
+        <span class="badge ok" id="stReach">Trong tầm với</span>
+      </div>
+      <div class="rowbtns" id="jacctrl" style="display:none">
+        <button class="btn" id="jacOne">1 bước</button>
+        <button class="btn amber" id="jacPlay">▶ Lặp tới hội tụ</button>
+        <button class="btn" id="jacRst">Đặt lại q₀</button>
+      </div>
+      <div class="rowbtns" id="trajctrl" style="display:none">
+        <button class="btn" data-shape="line">Đường thẳng</button>
+        <button class="btn" data-shape="circle">Đường tròn</button>
+        <button class="btn" data-shape="star" data-planaronly>Ngôi sao</button>
+        <button class="btn" data-shape="word" data-planaronly>Viết “ARM”</button>
+        <button class="btn amber" id="trajPlay">▶ Chạy</button>
+        <button class="btn" id="trajClear">Xóa vết</button>
+      </div>
+      <p class="hint" id="modeHint"></p>
+    </div>
+
+    <div class="card" id="stepCard" hidden>
+      <div class="eyebrow" id="stepTitle">Động học nghịch từng bước · từ bảng thông số D–H</div>
+      <div class="snav">
+        <button class="btn" id="stFirst" title="Về bước đầu">⏮</button>
+        <button class="btn" id="stPrev" title="Phím ←">◀ Trước</button>
+        <button class="btn amber" id="stPlay">▶ Tự chạy</button>
+        <button class="btn" id="stNext" title="Phím →">Tiếp ▶</button>
+        <button class="btn" id="stLast" title="Tới bước cuối: hai nghiệm">⏭</button>
+        <span class="scount" id="stCount">1 / 12</span>
+        <span class="grow"></span>
+        <button class="btn" id="stPreset" title="Reset">Reset</button>
+      </div>
+      <div class="stepper" id="stepList"></div>
+      <div id="stepBody"></div>
+    </div>
+
+    <div class="card">
+      <div class="eyebrow">Bảng thông số D–H (sửa trực tiếp)</div>
+      <table class="dh">
+        <thead><tr><th>Khâu i</th><th>aᵢ</th><th>αᵢ</th><th>dᵢ</th><th>θᵢ* (°)</th></tr></thead>
+        <tbody id="dhbody"></tbody>
+      </table>
+      <p class="hint" style="margin-top:6px"><b>aᵢ</b>: khoảng cách theo x · <b>αᵢ</b>: góc quay quanh x&emsp;|&emsp;<b>dᵢ</b>: khoảng cách theo z · <b>θᵢ</b>: góc quay quanh z<br>* θᵢ là biến của khớp quay; aᵢ, αᵢ, dᵢ là hằng số của khâu. Khớp tịnh tiến (khớp 3 của robot Stanford) thì ngược lại: dᵢ là biến, θᵢ cố định.</p>
+      <details open style="margin-top:10px">
+        <summary>Nhắc lại 4 thông số D–H</summary>
+        <ul>
+          <li><b>a</b> — chiều dài khâu: khoảng cách theo xᵢ.</li>
+          <li><b>α</b> — góc xoắn khâu: góc quay quanh xᵢ.</li>
+          <li><b>d</b> — độ lệch khâu: khoảng cách theo z₍ᵢ₋₁₎.</li>
+          <li><b>θ</b> — góc khớp: góc quay quanh z₍ᵢ₋₁₎ <i>(biến khớp quay)</i>.</li>
+          <li>Robot phẳng ⇒ <b>α = 0, d = 0</b>; chỉ còn θ là biến.</li>
+        </ul>
+      </details>
+      <details open style="margin-top:10px">
+        <summary>Nền tảng: ma trận quay cơ bản → ma trận thuần nhất</summary>
+        <div id="rotBase"></div>
+      </details>
+      <details open style="margin-top:10px">
+        <summary>Công thức D–H: từ một hàng của bảng → ma trận khâu Aᵢ</summary>
+        <div class="fxbox fx" id="dhGeneral"></div>
+        <div class="method" id="dhPlanarLbl">Robot phẳng</div>
+        <div class="fxbox fx" id="dhPlanar"></div>
+        <div class="method" id="dhSubLbl">Thay số từng hàng của bảng</div>
+        <div class="fxbox fx" id="dhsub"></div>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="eyebrow">Ma trận thuần nhất</div>
+      <details open>
+        <summary>Ma trận từng khâu  Aᵢ</summary>
+        <div class="amx" id="amx" style="margin-top:10px"></div>
+      </details>
+      <div style="font-family:'Courier New',monospace;font-size:12.5px;font-weight:700;margin:12px 0 5px;color:var(--deep)">
+        T = A₁·A₂<span id="a3lbl">·A₃</span>
+      </div>
+      <div class="mat" id="tmat"></div>
+      <div class="pose" id="poseRow"></div>
+      <p class="hint">Cột tịnh tiến của <b>T</b> (màu cam) = tọa độ bàn tay trên hình — cầu nối giữa bảng thông số D–H và chuyển động thực. Nhân A₁·A₂·A₃ ra đúng cột đó — xem từng bước ở thẻ “Cách tính động học thuận”.</p>
+    </div>
+
+   </div>
+   <div class="col">
+    <div class="card" id="kinCardFK">
+      <div class="eyebrow">Cách tính động học thuận · θ → (x, y, φ)</div>
+      <div id="kinFK"></div>
+    </div>
+
+    <div class="card" id="kinCardIK" hidden>
+      <div class="eyebrow">Cách tính động học nghịch · (x, y) → θ</div>
+      <details open class="explain">
+        <summary>Giải thích: vì sao và giải như thế nào?</summary>
+        <div id="ikExplain"></div>
+      </details>
+      <details open class="explain">
+        <summary>Lời giải chi tiết · thay số trực tiếp</summary>
+        <div id="kinIKsteps"></div>
+      </details>
+    </div>
+
+    <div class="card" id="kinCardJac" hidden>
+      <div class="eyebrow">Jacobian &amp; động học nghịch bằng lặp số · mục 4.6</div>
+      <div id="kinJac"></div>
+    </div>
+   </div>
+  </div>
+</div>
+
+<footer>
+  <div class="l"><a href="https://github.com/phatcvo/ArmSimLec" style="color:inherit">ArmSimLec</a> · MIT License</div>
+  <div class="r">phatcv · v1.16</div>
+</footer>
+
+<script>
+"use strict";
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const DPR=Math.min(window.devicePixelRatio||1,2), CW=660, CH=560;
+cv.width=CW*DPR; cv.height=CH*DPR; cv.style.width=CW+"px"; cv.style.height=CH+"px"; ctx.scale(DPR,DPR);
+
+const COL={blue:"#1668A6",sky:"#3EA6DE",deep:"#0E3D63",amber:"#E9873A",
+  line:"#CFDDEA",muted:"#5E7690",ws:"#B9C6D3",grid:"rgba(22,104,166,0.07)"};
+
+const S={mode:"fk",dof:2,robot:"planar",showFrames:false,showArcs:true,elbow:+1,phi:0,
+  el:{q:[25*Math.PI/180,70*Math.PI/180,-60*Math.PI/180,-40*Math.PI/180,40*Math.PI/180,0], a:[1.05,0.95,0.45],
+    yaw:38*Math.PI/180, pitch:22*Math.PI/180, zoom:1, br:{arm:1,elb:1,wr:1},
+    tgt:{x:1.35,y:0.6,z:0.95,az:25*Math.PI/180,el:-20*Math.PI/180,roll:0}, step:0, anim:null, raf:0,
+    tr:{shape:null, strokes:null, samples:[], idx:0, trail:[], playing:false}},
+  st:{q:[30*Math.PI/180,70*Math.PI/180,0.8,20*Math.PI/180,40*Math.PI/180,0], d2:0.3, d6:0.3, br:{sh:1,wr:1}, yaw:-50*Math.PI/180, pitch:20*Math.PI/180, zoom:1,
+    tgt:{x:0.9,y:0.45,z:0.25,az:20*Math.PI/180,el:-35*Math.PI/180,roll:0}, step:0, anim:null, raf:0,
+    tr:{shape:null, strokes:null, samples:[], idx:0, trail:[], playing:false}},
+  jac:{alpha:0.5, lam:0.06, it:[], path:[], n:0, play:false},
+  a:[1.2,1.2,0.9], th:[30*Math.PI/180,40*Math.PI/180,-20*Math.PI/180],
+  target:{x:1.6,y:1.2}, reachable:true, cursor:null,
+  samples:[], strokes:null, sIdx:0, trail:[], playing:false, shape:null, kin:"fk",
+  step:0, stepPlay:false, anim:null, animRaf:0};
+
+const ORIGIN={x:205,y:352}, SCALE=104, D2R=Math.PI/180, R2D=180/Math.PI;
+
+// ---------- sổ đăng ký robot ----------
+// Mọi câu hỏi "đang là robot nào?" tra ở đây. Thêm một robot = thêm một mục, không sửa rải rác khắp file.
+// Tất cả đều bọc trong hàm mũi tên nên gọi được cả những hàm khai báo ở cuối file.
+const ROBOTS={
+  planar:{ten:"Robot phẳng", kg3d:false, legend:"planar", ctrlIK:"ikctrl",
+    tenIK:"Động học nghịch từng bước", chainLbl:"·A₃", chainLblHien:()=>S.dof===3,
+    dhSubLbl:"Thay số từng hàng của bảng",
+    dof:()=>S.dof, q:()=>S.th, T:()=>chainT(), Amat:i=>Amat(i),
+    col:i=>[COL.blue,COL.sky,COL.amber][i],
+    render:()=>renderPlanar(), sliders:()=>buildSlidersPlanar(), syncSliders:()=>syncThetaSliders(),
+    step:()=>S.step, goStep:(i,an)=>stepGo(i,an), stepPanels:()=>stepPanels(),
+    stepZero:()=>{S.step=0;}, stepEnter:()=>applyIKStep(false),     // vào tab nghịch: cập nhật cả badge tầm với
+    stepAutoplay:()=>stepGo(S.step>=stepLimit(stepIds(),ikStepData())?0:S.step+1,true),
+    setShape:n=>setShapePlanar(n), shape:()=>S.shape, trajEnter:()=>{},
+    trajToggle:()=>trajTogglePlanar(), trajClear:()=>trajClearPlanar(),
+    dhBody:()=>planarDhBody(), dhSub:()=>dhSubHTML(), fkHTML:()=>fkHTML(),
+    ikExplain:()=>ikExplainPlanarHTML(), ikFig:()=>ikFigSVG(), ikHTML:()=>ikHTML(),
+    jacState:()=>jacPlanarState(), jacSeed:()=>{S.th=S.th.map(()=>0.35);},
+    jacNudge:(i,v)=>{S.th[i]=wrapPi(S.th[i]+v);}},
+
+  elbow:{ten:"ELBOW 6 khâu", kg3d:true, legend:"elbow", ctrlIK:"elctrl",
+    tenIK:"Động học nghịch ELBOW từng bước", chainLbl:"·A₃·A₄·A₅·A₆", chainLblHien:()=>true,
+    dhSubLbl:"Thay số vài hàng của bảng",
+    dof:()=>6, q:()=>S.el.q, T:()=>elFK(S.el.q).T[6], Amat:i=>elA(i,S.el.q),
+    col:i=>EL_COL[i],
+    render:()=>renderEl(), sliders:()=>buildSlidersEl(), syncSliders:()=>syncElSliders(),
+    step:()=>S.el.step, goStep:(i,an)=>elStepGo(i,an), stepPanels:()=>elStepPanels(),
+    stepZero:()=>{S.el.step=0;}, stepEnter:()=>elStepGo(S.el.step,false),
+    stepAutoplay:()=>elStepGo(S.el.step>=elStepLimit(elIK(S.el.br))?0:S.el.step+1,true),
+    setShape:n=>elSetShape(n), shape:()=>S.el.tr.shape, trajEnter:()=>{if(!S.el.tr.shape)elSetShape("line");},
+    trajToggle:()=>elTrajToggle(), trajClear:()=>{S.el.tr.trail=[];S.el.tr.idx=0;render();},
+    dhBody:()=>elDhBody(), dhSub:()=>elDhSubHTML(), fkHTML:()=>elFkHTML(),
+    ikExplain:()=>elIkExplainHTML(), ikHTML:()=>elIkHTML(),
+    jacState:()=>jacElState(), jacSeed:()=>{S.el.q=[0,-0.5,1.0,-0.5,0.6,0];},
+    jacNudge:(i,v)=>{S.el.q[i]=wrapPi(S.el.q[i]+v);}},
+
+  stanford:{ten:"Stanford 6 khâu", kg3d:true, legend:"stanford", ctrlIK:"stctrl", view:{ox:330,oy:250,sc:175}, cam:()=>S.st,
+    tenIK:"Động học nghịch Stanford từng bước", chainLbl:"·A₃·A₄·A₅·A₆", chainLblHien:()=>true,
+    dhSubLbl:"Thay số ba hàng đầu của bảng", preset:()=>stPreset(),
+    dof:()=>6, q:()=>S.st.q, T:()=>stFK(S.st.q).T[6], Amat:i=>stA(i,S.st.q),
+    col:i=>EL_COL[i], prism:[false,false,true,false,false,false],   // khớp 3 tịnh tiến: biến là d₃ (đơn vị dài)
+    render:()=>renderSt(), sliders:()=>buildSlidersSt(), syncSliders:()=>syncStSliders(),
+    step:()=>S.st.step, goStep:(i,an)=>stStepGo(i,an), stepPanels:()=>stStepPanels(),
+    stepZero:()=>{S.st.step=0;}, stepEnter:()=>stStepGo(S.st.step,false),
+    stepAutoplay:()=>stStepGo(S.st.step>=stStepLimit(stIK(S.st.br))?0:S.st.step+1,true),
+    setShape:n=>stSetShape(n), shape:()=>S.st.tr.shape, trajEnter:()=>{if(!S.st.tr.shape)stSetShape("line");},
+    trajToggle:()=>stTrajToggle(), trajClear:()=>{S.st.tr.trail=[];S.st.tr.idx=0;render();},
+    dhBody:()=>stDhBody(), dhSub:()=>stDhSubHTML(), fkHTML:()=>stFkHTML(),
+    ikExplain:()=>stIkExplainHTML(), ikHTML:()=>stIkHTML(),
+    jacState:()=>jacStState(), jacSeed:()=>{S.st.q=[0.3,1.2,0.9,0.2,0.6,0];},
+    jacNudge:(i,v)=>{if(i===2)S.st.q[2]=Math.max(ST_D3[0],Math.min(ST_D3[1],S.st.q[2]+v));else S.st.q[i]=wrapPi(S.st.q[i]+v);}}
+};
+const R=()=>ROBOTS[S.robot];        // robot đang chọn
+const cam=()=>R().cam?R().cam():S.el;   // góc nhìn riêng của từng robot 3D (mặc định dùng của ELBOW)
+const kg3d=()=>R().kg3d;            // robot không gian: xoay góc nhìn, bàn tay có z, ẩn hình chỉ vẽ được trên mặt phẳng
+// kg3d() chỉ dùng cho năng lực chung của robot 3D; việc riêng của một robot thì tra sổ hoặc hỏi thẳng S.robot
+
+const w2s=(x,y)=>({x:ORIGIN.x+x*SCALE, y:ORIGIN.y-y*SCALE});
+const s2w=(sx,sy)=>({x:(sx-ORIGIN.x)/SCALE, y:(ORIGIN.y-sy)/SCALE});
+
+// ---------- math ----------
+function dhMat(th,d,a,al){const ct=Math.cos(th),st=Math.sin(th),ca=Math.cos(al),sa=Math.sin(al);
+  return [[ct,-st*ca,st*sa,a*ct],[st,ct*ca,-ct*sa,a*st],[0,sa,ca,d],[0,0,0,1]];}
+function mul(A,B){const C=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+  for(let i=0;i<4;i++)for(let j=0;j<4;j++){let s=0;for(let k=0;k<4;k++)s+=A[i][k]*B[k][j];C[i][j]=s;}return C;}
+function Amat(i){return dhMat(S.th[i],0,S.a[i],0);}
+function chainT(){let T=Amat(0);T=mul(T,Amat(1));if(S.dof===3)T=mul(T,Amat(2));return T;}
+function joints(){const p=[{x:0,y:0}];let ang=0;
+  for(let i=0;i<S.dof;i++){ang+=S.th[i];p.push({x:p[i].x+S.a[i]*Math.cos(ang),y:p[i].y+S.a[i]*Math.sin(ang)});}return p;}
+function ik2R(x,y,a1,a2,e){const r2=x*x+y*y;let c2=(r2-a1*a1-a2*a2)/(2*a1*a2);
+  if(c2>1||c2<-1)return null;c2=Math.max(-1,Math.min(1,c2));const s2=e*Math.sqrt(1-c2*c2);
+  const t2=Math.atan2(s2,c2);const t1=Math.atan2(y,x)-Math.atan2(a2*Math.sin(t2),a1+a2*Math.cos(t2));return[t1,t2];}
+function solveIK(x,y){
+  if(S.dof===2){const s=ik2R(x,y,S.a[0],S.a[1],S.elbow);return s?[s[0],s[1]]:null;}
+  const xw=x-S.a[2]*Math.cos(S.phi),yw=y-S.a[2]*Math.sin(S.phi);
+  const s=ik2R(xw,yw,S.a[0],S.a[1],S.elbow);return s?[s[0],s[1],S.phi-s[0]-s[1]]:null;}
+function reachOuter(){let r=0;for(let i=0;i<S.dof;i++)r+=S.a[i];return r;}
+function reachInner(){return S.dof===2?Math.abs(S.a[0]-S.a[1]):Math.max(0,Math.abs(Math.abs(S.a[0]-S.a[1])-S.a[2]));}
+
+// ---------- drawing ----------
+function clear(){ctx.clearRect(0,0,CW,CH);}
+function grid(){ctx.strokeStyle=COL.grid;ctx.lineWidth=1;
+  for(let gx=-2;gx<=4.5;gx+=0.5){const p=w2s(gx,0);ctx.beginPath();ctx.moveTo(p.x,0);ctx.lineTo(p.x,CH);ctx.stroke();}
+  for(let gy=-2.5;gy<=3.5;gy+=0.5){const p=w2s(0,gy);ctx.beginPath();ctx.moveTo(0,p.y);ctx.lineTo(CW,p.y);ctx.stroke();}}
+function workspace(){const o=w2s(0,0),Ro=reachOuter()*SCALE,Ri=reachInner()*SCALE;
+  ctx.fillStyle="rgba(185,198,211,0.15)";ctx.beginPath();ctx.arc(o.x,o.y,Ro,0,7);ctx.fill();
+  if(Ri>1){ctx.globalCompositeOperation="destination-out";ctx.beginPath();ctx.arc(o.x,o.y,Ri,0,7);ctx.fill();
+    ctx.globalCompositeOperation="source-over";}
+  ctx.strokeStyle="rgba(94,118,144,0.4)";ctx.setLineDash([5,5]);ctx.lineWidth=1.3;
+  ctx.beginPath();ctx.arc(o.x,o.y,Ro,0,7);ctx.stroke();
+  if(Ri>1){ctx.beginPath();ctx.arc(o.x,o.y,Ri,0,7);ctx.stroke();}ctx.setLineDash([]);}
+function arrow(x1,y1,x2,y2,color,label){ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  const a=Math.atan2(y2-y1,x2-x1),h=8;ctx.beginPath();ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-h*Math.cos(a-0.4),y2-h*Math.sin(a-0.4));ctx.lineTo(x2-h*Math.cos(a+0.4),y2-h*Math.sin(a+0.4));
+  ctx.closePath();ctx.fill();if(label){ctx.font="italic 13px 'Courier New'";ctx.fillText(label,x2+4,y2-4);}}
+function axes(){const o=w2s(0,0);
+  arrow(o.x,o.y,w2s(1.25,0).x,w2s(1.25,0).y,COL.blue,"x₀");
+  arrow(o.x,o.y,w2s(0,1.25).x,w2s(0,1.25).y,COL.amber,"y₀");
+  ctx.fillStyle=COL.muted;ctx.font="10px 'Courier New'";
+  for(let t=1;t<=2;t++){let p=w2s(t,0);ctx.fillText(t,p.x-3,p.y+14);p=w2s(0,t);ctx.fillText(t,p.x-16,p.y+3);}}
+function triad(pt,ang){const o=w2s(pt.x,pt.y),L=0.3*SCALE;
+  arrow(o.x,o.y,o.x+L*Math.cos(ang),o.y-L*Math.sin(ang),"rgba(22,104,166,.85)");
+  arrow(o.x,o.y,o.x+L*Math.cos(ang+Math.PI/2),o.y-L*Math.sin(ang+Math.PI/2),"rgba(233,135,58,.85)");}
+function angleArcs(P){let base=0;const r=0.34;
+  for(let i=0;i<S.dof;i++){const c=P[i],a0=base,a1=base+S.th[i];
+    if(S.mode==="ik"&&Math.abs(S.th[i])<1e-3)continue;   // khớp chưa giải (θ = 0): không ghi nhãn
+    ctx.strokeStyle=COL.sky;ctx.lineWidth=2;ctx.beginPath();
+    const n=18;for(let k=0;k<=n;k++){const aa=a0+(a1-a0)*k/n;const p=w2s(c.x+r*Math.cos(aa),c.y+r*Math.sin(aa));
+      k?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}ctx.stroke();
+    const am=(a0+a1)/2,lp=w2s(c.x+(r+0.16)*Math.cos(am),c.y+(r+0.16)*Math.sin(am));
+    ctx.fillStyle=COL.blue;ctx.font="bold 12px 'Courier New'";ctx.fillText("θ"+(i+1),lp.x-7,lp.y+4);
+    base=a1;}}
+function drawArm(P,colors,alpha){ctx.globalAlpha=alpha;const cols=colors||[COL.blue,COL.sky,COL.amber];
+  for(let i=0;i<P.length-1;i++){const a=w2s(P[i].x,P[i].y),b=w2s(P[i+1].x,P[i+1].y);
+    ctx.strokeStyle=cols[i];ctx.lineWidth=9;ctx.lineCap="round";
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
+  for(let i=0;i<P.length;i++){const p=w2s(P[i].x,P[i].y);
+    if(i===P.length-1){ctx.fillStyle=COL.deep;ctx.fillRect(p.x-7,p.y-7,14,14);}
+    else{ctx.fillStyle=(i===0?COL.deep:"#12558A");ctx.beginPath();ctx.arc(p.x,p.y,7,0,7);ctx.fill();}}
+  ctx.globalAlpha=1;}
+function drawTarget(){const t=w2s(S.target.x,S.target.y),col=S.reachable?COL.sky:"#B23A2A",r=10;
+  ctx.strokeStyle=col;ctx.lineWidth=2.4;ctx.beginPath();ctx.arc(t.x,t.y,r,0,7);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(t.x-r-5,t.y);ctx.lineTo(t.x+r+5,t.y);ctx.moveTo(t.x,t.y-r-5);ctx.lineTo(t.x,t.y+r+5);ctx.stroke();}
+function drawStrokesPreview(){if(!S.strokes)return;ctx.strokeStyle="rgba(94,118,144,.45)";
+  ctx.setLineDash([5,4]);ctx.lineWidth=1.4;
+  for(const st of S.strokes){ctx.beginPath();for(let i=0;i<st.length;i++){const p=w2s(st[i].x,st[i].y);
+    i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}ctx.stroke();}ctx.setLineDash([]);}
+function drawTrail(){if(!S.trail.length)return;ctx.strokeStyle=COL.amber;ctx.lineWidth=3.6;
+  ctx.lineCap="round";ctx.lineJoin="round";ctx.beginPath();let started=false;
+  for(const q of S.trail){if(q.pen){const p=w2s(q.x,q.y);started?ctx.lineTo(p.x,p.y):(ctx.moveTo(p.x,p.y),started=true);}
+    else started=false;}ctx.stroke();}
+function drawHUD(){
+  const T=chainT(),px=T[0][3],py=T[1][3];let phi=0;for(let i=0;i<S.dof;i++)phi+=S.th[i];
+  const lines=["bàn tay  x="+px.toFixed(2)+"  y="+py.toFixed(2),"φ = "+(phi*R2D).toFixed(0)+"°"];
+  if(S.mode!=="fk"&&S.cursor)lines.push("chuột   x="+S.cursor.x.toFixed(2)+"  y="+S.cursor.y.toFixed(2));
+  ctx.font="12px 'Courier New'";let wm=0;lines.forEach(l=>wm=Math.max(wm,ctx.measureText(l).width));
+  const bw=wm+18,bh=lines.length*17+12;
+  ctx.fillStyle="rgba(255,255,255,.88)";ctx.strokeStyle=COL.line;ctx.lineWidth=1;
+  if(ctx.roundRect){ctx.beginPath();ctx.roundRect(10,10,bw,bh,8);ctx.fill();ctx.stroke();}
+  else{ctx.fillRect(10,10,bw,bh);ctx.strokeRect(10,10,bw,bh);}
+  ctx.fillStyle=COL.deep;lines.forEach((l,i)=>ctx.fillText(l,19,29+i*17));}
+// góc β, ψ của lời giải nghịch: β = hướng O→đích (cổ tay W nếu 3R), ψ = lệch giữa khâu 1 và OW ⇒ θ₁ = β − ψ
+const BP={beta:"#7B4FB8",psi:"#1E7A54",rb:0.62,rp:0.95};
+function arcPath(r,a0,a1,wedge){const n=Math.max(8,Math.ceil(Math.abs(a1-a0)*30)),o=w2s(0,0);ctx.beginPath();
+  if(wedge)ctx.moveTo(o.x,o.y);
+  for(let k=0;k<=n;k++){const a=a0+(a1-a0)*k/n,p=w2s(r*Math.cos(a),r*Math.sin(a));(k||wedge)?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}
+  if(wedge)ctx.closePath();}
+
+function render(){R().render();}
+function renderPlanar(){
+  clear();grid();workspace();axes();
+  const sIds=S.mode==="ik"?stepIds():null,sd=sIds?ikStepData():null;
+  if(sIds&&S.step>=sIds.length)S.step=sIds.length-1;
+  const sid=sIds?sIds[S.step]:null;
+  if(S.mode==="traj"){drawStrokesPreview();drawTrail();}
+  if(S.mode==="jac")jacTrail2();
+  if(sd)stepUnder(sd,sid);
+  const P=joints();drawArm(P,null,sid==="r"||sid==="cos"?0.4:1);
+  if(S.showArcs)angleArcs(P);
+  if(S.showFrames){let ang=0;triad(P[0],0);for(let i=0;i<S.dof;i++){ang+=S.th[i];triad(P[i+1],ang);}}
+  if(S.mode!=="fk")drawTarget();
+  if(sd)stepOver(sd,sid,P);
+  const o=w2s(0,0);ctx.fillStyle=COL.muted;ctx.font="12px 'Courier New'";ctx.fillText("O₀",o.x-24,o.y+16);
+  drawHUD();if(sd)drawStepBanner(sIds,sd);updatePanels();}
+
+// ---------- panels ----------
+function fmt(v){const s=(Math.abs(v)<0.0005?0:v).toFixed(3);return(v>=0?" ":"")+s;}
+function matHTML(M,hl){return M.map((r,ri)=>{const cells=r.map((v,ci)=>(hl&&ci===3&&ri<3)?`<span class="p">${fmt(v)}</span>`:fmt(v));
+  const br=ri===0?"⎡":ri===3?"⎣":"⎢",bl=ri===0?"⎤":ri===3?"⎦":"⎥";return `${br} ${cells.join("  ")} ${bl}`;}).join("<br>");}
+function planarDhBody(){return [...Array(S.dof).keys()]
+  .map(i=>`<tr><td>${i+1}</td><td>${S.a[i].toFixed(2)}</td><td>0°</td><td>0</td><td class="th">${(S.th[i]*R2D).toFixed(1)}</td></tr>`).join("");}
+function updatePanels(){
+  const el=kg3d(), n=R().dof();
+  document.getElementById("dhbody").innerHTML=R().dhBody();
+  let amx="";for(let i=0;i<n;i++){const col=R().col(i);
+    amx+=`<div class="amitem"><div class="amt" style="color:${col}">A${i+1}</div><div class="mat">${matHTML(R().Amat(i),false)}</div></div>`;}
+  document.getElementById("amx").innerHTML=amx;
+  const T=R().T();
+  document.getElementById("tmat").innerHTML=matHTML(T,true);
+  const lbl=document.getElementById("a3lbl");
+  lbl.textContent=R().chainLbl; lbl.style.display=R().chainLblHien()?"inline":"none";
+  document.getElementById("poseRow").innerHTML=poseHTML(T,el);
+  ["dhPlanarLbl","dhPlanar"].forEach(id=>{document.getElementById(id).hidden=el;});
+  document.getElementById("dhSubLbl").textContent=R().dhSubLbl;
+  setHTML("rotNum",rotNumHTML());setHTML("dhsub",R().dhSub());
+  if(S.mode==="ik")R().stepPanels();
+  if(S.kin==="fk")setHTML("kinFK",R().fkHTML());
+  else if(S.kin==="jac")setHTML("kinJac",jacHTML());
+  else{setExplain(R().ikExplain());
+    if(R().ikFig)setHTML("ikFig",R().ikFig());
+    setHTML("kinIKsteps",R().ikHTML());}}
+// ba ô số dưới ma trận T: robot phẳng cho (x, y, φ), ELBOW cho (x, y, z)
+function poseHTML(T,el){const st=(k,v)=>`<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  if(el)return st("x (bàn tay)",T[0][3].toFixed(2))+st("y (bàn tay)",T[1][3].toFixed(2))+st("z (bàn tay)",T[2][3].toFixed(2));
+  let phi=0;for(let i=0;i<S.dof;i++)phi+=S.th[i];
+  return st("x (bàn tay)",T[0][3].toFixed(2))+st("y (bàn tay)",T[1][3].toFixed(2))+st("φ hướng (°)",(phi*R2D).toFixed(0));}
+
+// ---------- công thức: D–H → Aᵢ, động học thuận, động học nghịch ----------
+const SUBS={"0":"₀","1":"₁","2":"₂","3":"₃","4":"₄","5":"₅","6":"₆","7":"₇","8":"₈","9":"₉","i":"ᵢ"};
+// mini-markup: "$a_1$c_12" → biến in nghiêng + chỉ số dưới; "$x_w" → x chỉ số w
+function M(s){return s.replace(/\$([A-Za-zθφαβψρσ]′?)(?:_([0-9i]+|[wxyz]))?/g,(m,v,sb)=>
+  "<i>"+v+"</i>"+(sb?(/^[wxyz]$/.test(sb)?"<sub>"+sb+"</sub>":[...sb].map(c=>SUBS[c]).join("")):""));}
+const F=s=>`<span class="fx">${M(s)}</span>`;
+const FR=(t,b)=>`<span class="fr"><span>${t}</span><span>${b}</span></span>`;
+const LN=h=>`<div class="ln">${h}</div>`;
+const TX=h=>`<div class="tx">${h}</div>`;
+const STEP=(k,h)=>`<div class="step"><span class="n">${k}</span><div>${h}</div></div>`;
+// ma trận có ngoặc; hl: tô cam cột p (cột 4), rb: tô xanh khối quay R (3×3 trên-trái)
+function BM(rows,hl,rb){return `<span class="bm" style="grid-template-columns:repeat(${rows[0].length},auto)">`+
+  rows.map((r,ri)=>r.map((c,ci)=>{const k=hl&&ci===3&&ri<3?"p":rb&&ci<3&&ri<3?"r":"";
+    return `<span${k?` class="${k}"`:""}>${c}</span>`;}).join("")).join("")+`</span>`;}
+function fN(v,d=3){if(Math.abs(v)<0.5*Math.pow(10,-d))v=0;return(v<0?"−":"")+Math.abs(v).toFixed(d);}
+const fD=(r,d=1)=>fN(r*R2D,d)+"°";
+const par=s=>s[0]==="−"?"("+s+")":s;
+function sumS(vals,f){return vals.map((v,i)=>{const s=f(v);return i===0?s:(s[0]==="−"?" − "+s.slice(1):" + "+s);}).join("");}
+const wrapPi=r=>r-2*Math.PI*Math.round(r/(2*Math.PI));
+const eqv=r=>Math.abs(r)>Math.PI+1e-9?` ≡ <b>${fD(wrapPi(r))}</b>`:"";
+const _html={};
+function setHTML(id,h){if(_html[id]!==h){_html[id]=h;document.getElementById(id).innerHTML=h;}}
+function setExplain(h){if(_html.ikExplain!==h){_html.ikExplain=h;document.getElementById("ikExplain").innerHTML=h;delete _html.ikFig;}}
+
+function buildDHFormulas(){const Z="0",O="1";
+  const G=[[M("c$θ_i"),M("−s$θ_ic$α_i"),M("s$θ_is$α_i"),M("$a_ic$θ_i")],
+    [M("s$θ_i"),M("c$θ_ic$α_i"),M("−c$θ_is$α_i"),M("$a_is$θ_i")],
+    [Z,M("s$α_i"),M("c$α_i"),M("$d_i")],[Z,Z,Z,O]];
+  document.getElementById("dhGeneral").innerHTML=
+    LN(M("Aᵢ = Rot($z, $θ_i)·Trans($z, $d_i)·Trans($x, $a_i)·Rot($x, $α_i)"))+
+    LN("&emsp;&ensp;= "+BM(G,true,true))+
+    TX("Viết tắt cθ = cos θ, sθ = sin θ. Khối xanh R = Rot(z, θᵢ)·Rot(x, αᵢ); cột cam p = vị trí gốc hệ i nhìn từ hệ i−1. Mỗi hàng của bảng thông số D–H cho đúng một ma trận Aᵢ.");
+
+  // ① quay cơ bản → ② thuần nhất (dẫn vào D–H)
+  const MX=(lab,rows,hl,rb)=>`<div>${LN(M(lab)+" =")}${BM(rows,hl,rb)}</div>`;
+  const svgWhy=`<svg viewBox="0 0 180 150" width="180" height="150" role="img" aria-label="Quay hệ 0 quanh trục z một góc θ thành hệ 1">
+    <defs>${[["mkM","#5E7690"],["mkB","#1668A6"],["mkA","#E9873A"]].map(([id,c])=>
+      `<marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="${c}"/></marker>`).join("")}</defs>
+    <line x1="62" y1="122" x2="137.4" y2="122" stroke="#1668A6" stroke-width="4" opacity=".25"/>
+    <line x1="62" y1="122" x2="62" y2="69.2" stroke="#1668A6" stroke-width="4" opacity=".25"/>
+    <line x1="62" y1="122" x2="162" y2="122" stroke="#5E7690" stroke-width="1.5" marker-end="url(#mkM)"/>
+    <line x1="62" y1="122" x2="62" y2="22" stroke="#5E7690" stroke-width="1.5" marker-end="url(#mkM)"/>
+    <path d="M137.4,69.2V122M137.4,69.2H62" stroke="#1668A6" stroke-width="1" stroke-dasharray="3 3" fill="none"/>
+    <path d="M88,122A26,26 0 0 0 83.3,107.1M62,96A26,26 0 0 0 47.1,100.7" stroke="#3EA6DE" stroke-width="1.6" fill="none"/>
+    <line x1="62" y1="122" x2="137.4" y2="69.2" stroke="#1668A6" stroke-width="2.2" marker-end="url(#mkB)"/>
+    <line x1="62" y1="122" x2="9.2" y2="46.6" stroke="#E9873A" stroke-width="2.2" marker-end="url(#mkA)"/>
+    <circle cx="62" cy="122" r="4.5" fill="#fff" stroke="#12324A" stroke-width="1.2"/><circle cx="62" cy="122" r="1.4" fill="#12324A"/>
+    <g font-family="Cambria Math,Cambria,Times New Roman,serif" font-size="12" font-style="italic">
+      <text x="165" y="126" fill="#5E7690">x₀</text><text x="67" y="28" fill="#5E7690">y₀</text>
+      <text x="140" y="64" fill="#1668A6">x₁</text><text x="14" y="44" fill="#E9873A">y₁</text>
+      <text x="95" y="116" fill="#1668A6">θ</text><text x="46" y="92" fill="#1668A6">θ</text>
+      <text x="100" y="139" fill="#1668A6" text-anchor="middle" font-size="11">cosθ</text>
+      <text x="67" y="99" fill="#1668A6" font-size="11">sinθ</text>
+      <text x="56" y="142" fill="#5E7690" text-anchor="end" font-size="11">z₀ ≡ z₁</text>
+    </g></svg>`;
+  document.getElementById("rotBase").innerHTML=
+    `<div class="method first">① Ma trận quay cơ bản (3×3)</div>`+
+    `<div class="fx elem">`+
+      MX("Rot($x, $α)",[[O,Z,Z],[Z,M("c$α"),M("−s$α")],[Z,M("s$α"),M("c$α")]])+
+      MX("Rot($y, $β)",[[M("c$β"),Z,M("s$β")],[Z,O,Z],[M("−s$β"),Z,M("c$β")]])+
+      MX("Rot($z, $θ)",[[M("c$θ"),M("−s$θ"),Z],[M("s$θ"),M("c$θ"),Z],[Z,Z,O]])+`</div>`+
+    `<div class="fxbox">`+
+      TX("• <b>Góc dương</b>: quay ngược chiều kim đồng hồ khi nhìn từ đầu mũi tên của trục quay (quy tắc bàn tay phải).")+
+      TX("• <b>Mẹo nhớ</b>: hàng và cột của trục quay giữ nguyên (1 trên đường chéo, 0 ở còn lại); bốn ô còn lại có dạng "+
+        `<span class="fx">${BM([["c","−s"],["s","c"]])}</span>`+". Riêng Rot(y) dấu “−” nằm ở hàng dưới, vì theo vòng x → y → z → x thì cặp trục còn lại của y là (z, x).")+
+      TX("• <b>Tính chất</b>: mỗi cột là một vectơ đơn vị của hệ mới viết trong hệ cũ ⇒ "+F("R⁻¹ = Rᵀ")+", det R = +1.")+
+      TX("• <b>Ghép nhiều phép quay</b>: quay quanh trục của hệ vừa quay (trục động) → nhân <b>bên phải</b>; quanh trục của hệ cố định → nhân <b>bên trái</b>.")+`</div>`+
+    `<div class="method">Vì sao Rot(z, θ) có dạng này?</div>`+
+    `<div class="fxbox rotwhy">${svgWhy}<div class="fx">`+
+      TX("Quay hệ 0 quanh z₀ một góc θ được hệ 1. Chiếu các vectơ đơn vị của hệ 1 lên trục hệ 0:")+
+      LN(M("$x_1")+" = (c"+M("$θ")+", s"+M("$θ")+", 0)&ensp;→ cột 1")+
+      LN(M("$y_1")+" = (−s"+M("$θ")+", c"+M("$θ")+", 0)&ensp;→ cột 2")+
+      LN(M("$z_1 = $z_0")+" = (0, 0, 1)&ensp;→ cột 3")+
+      LN("⇒ ⁰R₁ = ["+M("$x_1&ensp;$y_1&ensp;$z_1")+"] = Rot("+M("$z")+", "+M("$θ")+")")+
+      TX("Điểm có tọa độ p₁ trong hệ 1 thì trong hệ 0 là "+F("p₀ = ⁰R₁·p₁")+".")+`</div></div>`+
+    `<div class="fxbox fx" id="rotNum"></div>`+
+    `<div class="method">② Ma trận thuần nhất 4×4 — gộp quay R và tịnh tiến p</div>`+
+    `<div class="fxbox fx">`+
+      LN("T = "+BM([["<b>R</b>",'<b class="cp">p</b>'],["0&ensp;0&ensp;0","1"]]))+
+      TX('<b class="cr">R</b> (3×3): hướng của hệ mới; <b class="cp">p</b> (3×1): vị trí gốc hệ mới — cả hai nhìn từ hệ cũ. Quay thuần: p = 0; tịnh tiến thuần: R = I.')+
+      LN("[p₀; 1] = T·[p₁; 1]&emsp;·&emsp;ghép hai phép: ⁰T₂ = ⁰T₁·¹T₂")+`</div>`+
+    `<div class="tx" style="margin:8px 2px 0">Bốn phép biến đổi cơ bản mà D–H sử dụng (khối xanh = R, cột cam = p):</div>`+
+    `<div class="fx elem">`+
+      MX("Rot($z, $θ)",[[M("c$θ"),M("−s$θ"),Z,Z],[M("s$θ"),M("c$θ"),Z,Z],[Z,Z,O,Z],[Z,Z,Z,O]],true,true)+
+      MX("Trans($z, $d)",[[O,Z,Z,Z],[Z,O,Z,Z],[Z,Z,O,M("$d")],[Z,Z,Z,O]],true,true)+
+      MX("Trans($x, $a)",[[O,Z,Z,M("$a")],[Z,O,Z,Z],[Z,Z,O,Z],[Z,Z,Z,O]],true,true)+
+      MX("Rot($x, $α)",[[O,Z,Z,Z],[Z,M("c$α"),M("−s$α"),Z],[Z,M("s$α"),M("c$α"),Z],[Z,Z,Z,O]],true,true)+`</div>`+
+    `<div class="tx" style="margin:8px 2px 0">⇒ Ghép 4 phép theo thứ tự quay z → tịnh tiến z → tịnh tiến x → quay x (trục động, nhân phải) được ma trận khâu Aᵢ ở mục ③.</div>`;
+  document.getElementById("dhPlanar").innerHTML=
+    LN(M("$d_i = 0,&ensp;$α_i = 0&emsp;⇒&emsp;c$α_i = 1,&ensp;s$α_i = 0:"))+
+    LN("Aᵢ = "+BM([[M("$c_i"),"−"+M("$s_i"),Z,M("$a_i$c_i")],[M("$s_i"),M("$c_i"),Z,M("$a_i$s_i")],[Z,Z,O,Z],[Z,Z,Z,O]],true,true))+
+    TX("với "+F("$c_i")+" = cos "+F("$θ_i")+", "+F("$s_i")+" = sin "+F("$θ_i")+". Khối xanh chính là Rot(z, θᵢ) ở mục ① — robot phẳng chỉ quay quanh z; khi chuyển động chỉ còn θᵢ thay đổi.");}
+
+function rotNumHTML(){const t=S.th[0],c=Math.cos(t),s=Math.sin(t);
+  return TX("Thay số với khớp 1 hiện tại:")+
+    LN("Rot("+M("$z")+", "+M("$θ_1")+" = "+fD(t)+") = "+BM([[fN(c),fN(-s),"0"],[fN(s),fN(c),"0"],["0","0","1"]]))+
+    TX("⇒ trùng khối 3×3 góc trên-trái của A₁ (thẻ “Ma trận thuần nhất”).");}
+
+function dhSubHTML(){let h="";
+  for(let i=0;i<S.dof;i++){const j=i+1,c=Math.cos(S.th[i]),s=Math.sin(S.th[i]);
+    h+=LN(`Hàng ${j}:&ensp;`+M(`$c_${j}`)+" = cos("+fD(S.th[i])+") = "+fN(c)+",&ensp;"+M(`$s_${j}`)+" = "+fN(s)+
+      "&emsp;⇒&emsp;"+M(`$a_${j}$c_${j}`)+" = <b>"+fN(S.a[i]*c)+"</b>,&ensp;"+M(`$a_${j}$s_${j}`)+" = <b>"+fN(S.a[i]*s)+"</b>");}
+  return h+TX("Điền các số này vào mẫu Aᵢ ở trên ⇒ được đúng các ma trận "+(S.dof===3?"A₁, A₂, A₃":"A₁, A₂")+" ở thẻ “Ma trận thuần nhất”.");}
+
+function fkHTML(){
+  const n=S.dof,a=S.a,th=S.th,k=["1","12","123"][n-1];
+  const thL=["$θ_1","$θ_2","$θ_3"].slice(0,n),angS=i=>thL.slice(0,i+1).join(" + ");
+  const xS=["$a_1$c_1","$a_2$c_12","$a_3$c_123"].slice(0,n).join(" + ");
+  const yS=["$a_1$s_1","$a_2$s_12","$a_3$s_123"].slice(0,n).join(" + ");
+  const T=[[M("$c_"+k),"−"+M("$s_"+k),"0",M(xS)],[M("$s_"+k),M("$c_"+k),"0",M(yS)],["0","0","1","0"],["0","0","0","1"]];
+  let h=`<div class="task">Bài toán: biết các góc khớp ${F(thL.join(", "))} → tìm vị trí ${F("($x, $y)")} và hướng ${F("$φ")} của bàn tay. Luôn có <b>đúng một</b> kết quả.</div>`;
+
+  h+=`<div class="method">Cách 1 — Nhân các ma trận khâu Aᵢ (từ bảng thông số D–H)</div><div class="fxbox fx">`;
+  h+=LN(`T = A₁·A₂${n===3?"·A₃":""} = `+BM(T,true));
+  h+=TX("Phần tử (hàng i, cột j) của tích = hàng i của ma trận trái nhân lần lượt với cột j của ma trận phải rồi cộng lại. Ví dụ phần tử (1,4) của A₁·A₂:");
+  h+=LN(M("(A₁A₂)₁₄ = $c_1·$a_2$c_2 + (−$s_1)·$a_2$s_2 + 0·0 + $a_1$c_1·1"));
+  h+=LN("&emsp;&emsp;&emsp;&ensp;= "+M("$a_1$c_1 + $a_2($c_1$c_2 − $s_1$s_2)")+" = <b>"+M("$a_1$c_1 + $a_2$c_12")+"</b>");
+  h+=TX("nhờ công thức cộng góc "+F("$c_1$c_2 − $s_1$s_2 = $c_12")+", "+F("$s_1$c_2 + $c_1$s_2 = $s_12")+"."+
+    (n===3?" Nhân tiếp với A₃ theo cùng cách, góc tiếp tục cộng dồn: "+F("$c_123")+" = cos("+M(angS(2))+").":""));
+  h+=LN(M("$x")+" = T₁₄,&ensp;"+M("$y")+" = T₂₄,&ensp;"+M("$φ")+" = atan2(T₂₁, T₁₁) = "+M(angS(n-1)));
+  h+="</div>";
+
+  h+=`<div class="method">Cách 2 — Hình học: cộng hình chiếu các khâu</div><div class="fxbox fx">`;
+  h+=TX("Khâu i là vectơ dài "+F("$a_i")+", hợp với trục x₀ góc tuyệt đối "+F("$θ_1 + … + $θ_i")+". Chiếu từng khâu lên x₀, y₀ rồi cộng:");
+  const proj=fn=>thL.map((_,i)=>M("$a_"+(i+1))+fn+(i===0?M(thL[0]):"("+M(angS(i))+")")).join(" + ");
+  h+=LN(M("$x")+" = "+proj("cos"))+LN(M("$y")+" = "+proj("sin"))+LN(M("$φ")+" = "+M(angS(n-1)));
+  h+=TX("⇒ đúng bằng cột tịnh tiến của T ở Cách 1: hai cách cho cùng một công thức.")+"</div>";
+
+  const cum=[];let acc=0;for(let i=0;i<n;i++){acc+=th[i];cum.push(acc);}
+  const px=cum.map((q,i)=>a[i]*Math.cos(q)),py=cum.map((q,i)=>a[i]*Math.sin(q));
+  const X=px.reduce((s,v)=>s+v,0),Y=py.reduce((s,v)=>s+v,0);
+  const sub=fn=>cum.map((q,i)=>fN(a[i],2)+"·"+fn+"("+fD(q)+")").join(" + ");
+  h+=`<div class="method">Thay số <small>· theo tư thế hiện tại</small></div><div class="fxbox fx">`;
+  h+=LN(cum.map((q,i)=>M(angS(i))+" = "+fD(q)).join(";&emsp;"));
+  h+=LN(M("$x")+" = "+sub("cos"))+LN("&emsp;= "+sumS(px,v=>fN(v))+" = <b>"+fN(X)+"</b>");
+  h+=LN(M("$y")+" = "+sub("sin"))+LN("&emsp;= "+sumS(py,v=>fN(v))+" = <b>"+fN(Y)+"</b>");
+  h+=LN(M("$φ")+" = "+sumS(th.slice(0,n),v=>fD(v))+" = <b>"+fD(cum[n-1])+"</b>"+eqv(cum[n-1]));
+  h+=TX('<span class="good">✓</span> Trùng với cột cam của T (thẻ “Ma trận thuần nhất”) và điểm vuông trên hình.')+"</div>";
+  return h;}
+
+// điểm cần giải ngược: điểm đích (IK/quỹ đạo) hoặc bàn tay hiện tại (FK, σ theo dấu θ₂)
+function ikInput(){
+  if(S.mode==="fk"){const T=chainT();let phi=0;for(let i=0;i<S.dof;i++)phi+=S.th[i];
+    return {x:T[0][3],y:T[1][3],phi,sig:S.th[1]<0?-1:1,fromFK:true};}
+  return {x:S.target.x,y:S.target.y,phi:S.phi,sig:S.elbow,fromFK:false};}
+
+function ikExplainPlanarHTML(){
+  const chips=[["Cho (x, y) [, φ]",""],["3R: tính W","opt"],["r² = x² + y²",""],["cos θ₂ = (r² − a₁² − a₂²) / 2a₁a₂",""],
+    ["|cos θ₂| ≤ 1 ? — sai ⇒ vô nghiệm","q"],["θ₂ = ±arccos(cos θ₂)",""],["θ₁ = β − ψ",""],["3R: θ₃ = φ − θ₁ − θ₂","opt"],["Kiểm tra bằng ĐH thuận",""]];
+  return     `<div class="method first">Vì sao khó hơn động học thuận?</div><div class="fxbox">`+
+      TX("Động học thuận chỉ là <b>thay số</b> vào công thức. Động học nghịch phải <b>giải ngược</b> hệ phương trình lượng giác phi tuyến:")+
+      `<div class="fx ln">${M("$x = $a_1cos$θ_1 + $a_2cos($θ_1 + $θ_2)")}</div><div class="fx ln">${M("$y = $a_1sin$θ_1 + $a_2sin($θ_1 + $θ_2)")}</div>`+
+      TX("nên số nghiệm không cố định: <b>2 nghiệm</b> (thường gặp), <b>1 nghiệm</b> (tay duỗi thẳng hoặc gập hẳn), <b>vô số nghiệm</b> (đích trùng gốc O khi a₁ = a₂) hoặc <b>vô nghiệm</b> (đích ngoài vùng làm việc).")+
+      TX("Robot 3R nếu chỉ cho (x, y) thì có 3 ẩn nhưng chỉ 2 phương trình ⇒ vô số nghiệm; vì vậy phải cho thêm hướng bàn tay φ.")+`</div>`+
+    `<div class="method">Ý tưởng: tách thành hai bài toán nhỏ</div>`+
+    `<div class="fxbox rotwhy"><div id="ikFig"></div><div>`+
+      TX("<b>Trước hết tìm θ₂.</b> Xoay cả cánh tay quanh O thì khoảng cách r = OH không đổi — r chỉ phụ thuộc độ gập khuỷu θ₂. Tam giác O–E–H biết đủ ba cạnh a₁, a₂, r ⇒ định lý cos cho góc tại khuỷu E.")+
+      TX("<b>Sau đó tìm θ₁.</b> Hình dạng tam giác đã cố định, chỉ cần xoay nó để H trùng điểm đích: "+F("$θ_1 = β − ψ")+" — <b class='cbeta'>β</b> (cung tím) là hướng từ O tới đích, <b class='cpsi'>ψ</b> (cung xanh lá) là góc lệch của khâu 1 so với OH do khuỷu gập. Hai cung này cũng được vẽ trên hình mô phỏng chính.")+
+      TX("Hình bên vẽ theo điểm đích hiện tại; nét đứt mờ là nghiệm còn lại (khuỷu ở E′).")+`</div></div>`+
+    `<div class="method">Vì sao có hai nghiệm?</div><div class="fxbox">`+
+      TX("cos θ₂ chỉ cho <b>độ lớn</b> của θ₂, vì "+F("cos(−$θ_2) = cos$θ_2")+". Về hình học, tam giác O–E–H có thể <b>lật đối xứng qua đường OH</b>: khuỷu nằm ở E hoặc E′. Hai nghiệm có θ₂ trái dấu và "+F("$θ_1 = β ∓ ψ")+".")+
+      TX("Trường hợp biên: r = a₁ + a₂ (duỗi thẳng, θ₂ = 0°) hoặc r = |a₁ − a₂| (gập hẳn, θ₂ = ±180°) ⇒ hai nghiệm trùng nhau. Ra ngoài khoảng đó thì |cos θ₂| > 1 ⇒ vô nghiệm — tức là nằm ngoài vành nét đứt trên hình mô phỏng.")+
+      TX("<b>Chọn nghiệm nào?</b> Thực tế chọn nghiệm gần tư thế hiện tại nhất (các khớp quay ít nhất), nằm trong giới hạn khớp và không va chạm vật cản.")+`</div>`+
+    `<div class="method">Vì sao dùng atan2 thay cho arctan?</div><div class="fxbox">`+
+      TX("arctan(y/x) chỉ cho góc trong (−90°, 90°) nên mất thông tin góc phần tư: điểm (1, 1) và (−1, −1) có cùng tỉ số y/x = 1. Hàm atan2(y, x) xét dấu của cả x và y nên cho đúng góc trong (−180°, 180°].")+
+      `<div class="fx ln">arctan((−1)/(−1)) = 45° <span class="fail">✗</span>&emsp;&emsp;atan2(−1, −1) = −135° <span class="good">✓</span></div>`+
+      TX("Tương tự, "+F("$θ_2 = atan2($s_2, $c_2)")+" giữ đúng dấu của θ₂, còn arccos luôn cho góc dương.")+`</div>`+
+    `<div class="method">Mẹo của cách đại số</div><div class="fxbox">`+
+      TX("<b>Khử θ₁:</b> bình phương rồi cộng hai phương trình. Nhờ "+F("$c_1² + $s_1² = 1")+" và "+F("$c_1$c_12 + $s_1$s_12 = $c_2")+", mọi số hạng chứa θ₁ biến mất, chỉ còn phương trình của θ₂.")+
+      TX("<b>Tuyến tính hóa:</b> đã biết θ₂ thì hai phương trình là tuyến tính theo "+F("$c_1, $s_1")+" (hệ số "+F("$k_1, $k_2")+") ⇒ giải gọn bằng atan2.")+
+      TX("Cách này không cần vẽ hình nên dễ lập trình và áp dụng được cho robot phức tạp hơn.")+`</div>`+
+    `<div class="method">Robot 3R: tách tâm cổ tay</div><div class="fxbox">`+
+      TX("Đã biết hướng φ của khâu cuối ⇒ từ bàn tay H lùi lại một đoạn a₃ theo hướng φ là tới tâm cổ tay W (khớp 3). Hai khâu đầu chỉ cần đưa W tới đúng chỗ — đó là bài toán 2R ở trên. Khâu 3 bù phần hướng còn thiếu: vì "+
+        F("$φ = $θ_1 + $θ_2 + $θ_3")+" nên "+F("$θ_3 = $φ − $θ_1 − $θ_2")+".")+`</div>`+
+    `<div class="method">Quy trình tóm tắt</div>`+
+    `<div class="flow">`+chips.map(([t,c])=>`<span class="chip${c?" "+c:""}">${t}</span>`).join('<span class="arr">→</span>')+`</div>`+
+    TX("Viền đứt: bước chỉ dùng cho 3R · viền cam: bước kiểm tra điều kiện có nghiệm.");}
+
+// hình tam giác O–E–H(W) của lời giải hiện tại, tự co giãn cho vừa khung
+function ikFigSVG(){
+  const {x,y,phi,sig}=ikInput(),n=S.dof,a1=S.a[0],a2=S.a[1],a3=S.a[2];
+  const xw=n===3?x-a3*Math.cos(phi):x,yw=n===3?y-a3*Math.sin(phi):y,Wp=[xw,yw],Hp=[x,y],O=[0,0];
+  const r=Math.hypot(xw,yw),c2r=(r*r-a1*a1-a2*a2)/(2*a1*a2),ok=Math.abs(c2r)<=1+1e-9;
+  const c2=Math.max(-1,Math.min(1,c2r)),beta=Math.atan2(yw,xw);
+  const elb=sg=>{const t2=sg*Math.acos(c2),t1=beta-Math.atan2(a2*Math.sin(t2),a1+a2*Math.cos(t2));return{t1,t2,E:[a1*Math.cos(t1),a1*Math.sin(t1)]};};
+  const cur=elb(sig),alt=elb(-sig),pts=[O,Wp,Hp,[0.6*a1,0]];
+  if(ok)pts.push(cur.E,alt.E);else{const R=a1+a2;pts.push([R,R],[-R,-R]);}
+  const VW=240,VH=200,pad=20,xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);
+  const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const s=Math.min((VW-2*pad)/Math.max(x1-x0,1e-6),(VH-2*pad)/Math.max(y1-y0,1e-6));
+  const ox=pad+(VW-2*pad-s*(x1-x0))/2-s*x0,oy=pad+(VH-2*pad-s*(y1-y0))/2+s*y1;
+  const f=v=>v.toFixed(1),P=p=>[ox+s*p[0],oy-s*p[1]];
+  const ln=(p,q,st)=>{const A=P(p),B=P(q);return `<line x1="${f(A[0])}" y1="${f(A[1])}" x2="${f(B[0])}" y2="${f(B[1])}" ${st}/>`;};
+  const tx=(q,t,col)=>`<text x="${f(q[0])}" y="${f(q[1])}" fill="${col}" text-anchor="middle" dominant-baseline="central">${t}</text>`;
+  const dot=(p,rad,col)=>{const Q=P(p);return `<circle cx="${f(Q[0])}" cy="${f(Q[1])}" r="${rad}" fill="${col}"/>`;};
+  const sq=(p,col)=>{const Q=P(p);return `<rect x="${f(Q[0]-4.5)}" y="${f(Q[1]-4.5)}" width="9" height="9" fill="${col}"/>`;};
+  const ptLab=(p,from,t,col)=>{const A=P(p),B=P(from),L=Math.hypot(A[0]-B[0],A[1]-B[1])||1;   // nhãn điểm, lệch ra xa "from"
+    return tx([A[0]+13*(A[0]-B[0])/L,A[1]+13*(A[1]-B[1])/L],t,col);};
+  const segLab=(p,q,away,t,col)=>{const A=P(p),B=P(q),Z=P(away),m=[(A[0]+B[0])/2,(A[1]+B[1])/2];   // nhãn đoạn, phía xa "away"
+    let nx=A[1]-B[1],ny=B[0]-A[0];const L=Math.hypot(nx,ny)||1;nx/=L;ny/=L;
+    if((Z[0]-m[0])*nx+(Z[1]-m[1])*ny>0){nx=-nx;ny=-ny;}return tx([m[0]+11*nx,m[1]+11*ny],t,col);};
+  const arc=(c,R,b0,b1,col,t)=>{if(Math.abs(b1-b0)<0.03)return "";
+    const C=P(c),pr=(a,rr)=>[C[0]+rr*Math.cos(a),C[1]-rr*Math.sin(a)],p0=pr(b0,R),p1=pr(b1,R);
+    return `<path d="M${f(p0[0])},${f(p0[1])}A${R},${R} 0 ${Math.abs(b1-b0)>Math.PI?1:0} ${b1>b0?0:1} ${f(p1[0])},${f(p1[1])}" fill="none" stroke="${col}" stroke-width="1.5"/>`+
+      tx(pr((b0+b1)/2,R+9),t,col);};
+  const wedge=(c,R,b0,b1,fill)=>{if(Math.abs(b1-b0)<0.03)return "";
+    const C=P(c),pr=a=>[C[0]+R*Math.cos(a),C[1]-R*Math.sin(a)],p0=pr(b0),p1=pr(b1);
+    return `<path d="M${f(C[0])},${f(C[1])}L${f(p0[0])},${f(p0[1])}A${R},${R} 0 ${Math.abs(b1-b0)>Math.PI?1:0} ${b1>b0?0:1} ${f(p1[0])},${f(p1[1])}Z" fill="${fill}"/>`;};
+  const Oc=P(O),axEnd=Math.min(VW-8,Math.max(P([x1,0])[0],Oc[0]+30)+10);
+  let g="";
+  if(!ok){g+=`<circle cx="${f(Oc[0])}" cy="${f(Oc[1])}" r="${f((a1+a2)*s)}" fill="rgba(185,198,211,.18)" stroke="#5E7690" stroke-dasharray="4 4"/>`;
+    const ri=Math.abs(a1-a2)*s;if(ri>1)g+=`<circle cx="${f(Oc[0])}" cy="${f(Oc[1])}" r="${f(ri)}" fill="#fff" stroke="#5E7690" stroke-dasharray="4 4"/>`;}
+  g+=`<line x1="${f(Oc[0])}" y1="${f(Oc[1])}" x2="${f(axEnd)}" y2="${f(Oc[1])}" stroke="#5E7690" stroke-width="1.2"/>`+tx([axEnd-4,Oc[1]+10],"x₀","#5E7690");
+  if(ok){const E=cur.E,E2=alt.E,dash='stroke="#9FBBD3" stroke-width="2" stroke-dasharray="4 3"';
+    g+=wedge(O,36,0,beta,"rgba(123,79,184,.14)")+wedge(O,56,cur.t1,beta,"rgba(30,122,84,.16)");
+    g+=ln(O,E2,dash)+ln(E2,Wp,dash)+ln(O,Wp,'stroke="#5E7690" stroke-width="1.2" stroke-dasharray="3 3"')+
+      ln(E,[E[0]*1.4,E[1]*1.4],'stroke="#5E7690" stroke-width="1" stroke-dasharray="2 3"')+
+      ln(O,E,'stroke="#1668A6" stroke-width="4" stroke-linecap="round"')+ln(E,Wp,'stroke="#3EA6DE" stroke-width="4" stroke-linecap="round"');
+    if(n===3)g+=ln(Wp,Hp,'stroke="#E9873A" stroke-width="4" stroke-linecap="round"');
+    g+=arc(O,14,0,wrapPi(cur.t1),"#1668A6","θ₁")+arc(O,36,0,beta,BP.beta,"β")+arc(O,56,cur.t1,beta,BP.psi,"ψ")+
+      arc(E,16,cur.t1,cur.t1+cur.t2,"#3EA6DE","θ₂");
+    g+=segLab(O,Wp,E,"r","#5E7690")+segLab(O,E,Wp,"a₁","#1668A6")+segLab(E,Wp,O,"a₂","#3EA6DE")+(n===3?segLab(Wp,Hp,O,"a₃","#E9873A"):"");
+    const mid=[xw/2,yw/2];
+    g+=dot(E2,3,"#9FBBD3")+ptLab(E2,mid,"E′","#7C9DB8")+dot(E,4,"#12558A")+ptLab(E,mid,"E","#0E3D63");}
+  else g+=ln(O,Wp,'stroke="#B23A2A" stroke-width="1.3" stroke-dasharray="3 3"')+
+    (n===3?ln(Wp,Hp,'stroke="#E9873A" stroke-width="2" stroke-dasharray="4 3"'):"")+
+    `<text x="8" y="14" fill="#B23A2A" font-style="normal" font-family="Segoe UI,system-ui,sans-serif" font-size="11.5">Ngoài tầm với: r ∉ [|a₁ − a₂|, a₁ + a₂]</text>`;
+  g+=dot(O,4.5,"#0E3D63")+ptLab(O,Wp,"O","#0E3D63")+sq(Wp,ok?"#0E3D63":"#B23A2A")+ptLab(Wp,O,n===3?"W":"H",ok?"#0E3D63":"#B23A2A");
+  if(n===3)g+=dot(Hp,3.5,"#E9873A")+ptLab(Hp,Wp,"H","#E9873A");
+  return `<svg viewBox="0 0 ${VW} ${VH}" width="${VW}" height="${VH}" role="img" aria-label="Hình học lời giải động học nghịch" `+
+    `font-family="Cambria Math,Cambria,Times New Roman,serif" font-size="12" font-style="italic" style="background:#fff;border-radius:6px">${g}</svg>`;}
+
+function ikHTML(){
+  const n=S.dof,a1=S.a[0],a2=S.a[1],a3=S.a[2],{x,y,phi,sig,fromFK}=ikInput();
+  const XS=n===3?"$x_w":"$x",YS=n===3?"$y_w":"$y",W=n===3?"W":"H",sgS=s=>s>0?"+1":"−1";
+  const thL=["$θ_1","$θ_2","$θ_3"].slice(0,n).join(", ");
+  let h=`<div class="task">Bài toán: biết vị trí ${F("($x, $y)")}${n===3?" và hướng "+F("$φ"):""} của bàn tay → tìm ${F(thL)}. Thường có <b>2 nghiệm</b> (khuỷu gập về hai phía, σ = ±1), hoặc <b>vô nghiệm</b> khi điểm ngoài tầm với.</div>`;
+  h+=`<div class="fxbox fx">`+TX(fromFK?"Đang ở chế độ Động học thuận: lấy vị trí bàn tay hiện tại để giải ngược — kết quả phải thu lại đúng các góc trên thanh trượt (σ lấy theo dấu θ₂).":
+      S.mode==="ik"?"Điểm đích (bấm/kéo trên hình); σ đổi bằng nút “Cấu hình”.":"Điểm đang bám trên quỹ đạo; σ giữ theo lựa chọn “Cấu hình” ở tab Động học nghịch.")+
+    LN(M("$x")+" = <b>"+fN(x)+"</b>,&ensp;"+M("$y")+" = <b>"+fN(y)+"</b>"+(n===3?",&ensp;"+M("$φ")+" = <b>"+fD(phi)+"</b>":"")+",&ensp;σ = <b>"+sgS(sig)+"</b>")+"</div>";
+
+  let xw=x,yw=y;
+  if(n===3){xw=x-a3*Math.cos(phi);yw=y-a3*Math.sin(phi);
+    h+=`<div class="method">Bước 0 — Tách tâm cổ tay W <small>· khâu 3 đã biết hướng φ</small></div><div class="fxbox fx">`+
+      LN(M("$x_w = $x − $a_3cos$φ")+" = "+fN(x)+" − "+fN(a3,2)+"·cos("+fD(phi)+") = <b>"+fN(xw)+"</b>")+
+      LN(M("$y_w = $y − $a_3sin$φ")+" = "+fN(y)+" − "+fN(a3,2)+"·sin("+fD(phi)+") = <b>"+fN(yw)+"</b>")+
+      TX("⇒ Còn lại bài toán 2R: đưa khâu 1–2 tới W. Cuối cùng "+F("$θ_3 = $φ − $θ_1 − $θ_2")+".")+"</div>";}
+
+  const r2=xw*xw+yw*yw,r=Math.sqrt(r2),c2r=(r2-a1*a1-a2*a2)/(2*a1*a2);
+  const ok=Math.abs(c2r)<=1+1e-9,c2=Math.max(-1,Math.min(1,c2r)),rin=Math.abs(a1-a2),rout=a1+a2;
+  h+=`<div class="method">Cách 1 — Hình học (định lý cos)</div><div class="fxbox fx">`;
+  h+=STEP(1,LN(M(`$r² = ${XS}² + ${YS}²`)+" = "+par(fN(xw))+"² + "+par(fN(yw))+"² = <b>"+fN(r2)+"</b>&emsp;("+M("$r")+" = "+fN(r)+")")+
+    TX("r không đổi khi xoay cả cánh tay quanh O — chỉ phụ thuộc độ gập θ₂, nên tìm θ₂ trước."));
+  h+=STEP(2,TX(`Tam giác O–E–${W} (E: khuỷu) có ba cạnh ${F("$a_1, $a_2, $r")}; góc trong tại E bằng 180° − ${F("$θ_2")}:`)+
+    LN(M("$r² = $a_1² + $a_2² − 2$a_1$a_2cos(180° − $θ_2)"))+
+    LN("&emsp;= "+M("$a_1² + $a_2² + 2$a_1$a_2cos$θ_2"))+
+    LN("⇒ cos"+M("$θ_2")+" = "+FR(M("$r² − $a_1² − $a_2²"),M("2$a_1$a_2"))+" = "+
+      FR(fN(r2)+" − "+fN(a1*a1)+" − "+fN(a2*a2),"2·"+fN(a1,2)+"·"+fN(a2,2))+" = <b"+(ok?"":' class="fail"')+">"+fN(c2r)+"</b>")+
+    LN("Có nghiệm ⇔ |cos"+M("$θ_2")+"| ≤ 1 ⇔ "+M("|$a_1 − $a_2| ≤ $r ≤ $a_1 + $a_2"))+
+    LN("&emsp;"+fN(rin,2)+" ≤ "+fN(r)+" ≤ "+fN(rout,2)+"&emsp;"+(ok?'<span class="good">✓ có nghiệm</span>':'<span class="fail">✗ không thỏa</span>')));
+  if(!ok){
+    h+=STEP("!",TX(`<span class="fail">Vô nghiệm:</span> ${r>rout?"điểm xa hơn tầm với tối đa":"điểm quá gần gốc (trong vùng rỗng)"} — ${F("$r")} = ${fN(r)} ${r>rout?">":"<"} ${fN(r>rout?rout:rin,2)}. `+
+      (n===3?"Với hướng φ này cổ tay W không tới được: đổi φ hoặc dời điểm đích.":"Kéo điểm đích vào trong vòng nét đứt.")+" Robot giữ nguyên tư thế cũ."))+"</div>";
+    return h;}
+
+  const t2=sig*Math.acos(c2),s2=Math.sin(t2),k1=a1+a2*c2,k2=a2*s2,beta=Math.atan2(yw,xw),psi=Math.atan2(k2,k1),t1=beta-psi;
+  h+=STEP(3,LN(M("$θ_2")+" = ± arccos("+fN(c2)+") = ±"+fD(Math.abs(t2))+"&emsp;→&emsp;σ = "+sgS(sig)+":&ensp;"+M("$θ_2")+" = <b>"+fD(t2)+"</b>")+
+    TX(`cos θ₂ = cos(−θ₂) nên có hai giá trị: khuỷu gập về hai phía đường O${W}; σ chọn một.`));
+  h+=STEP(4,LN("β = atan2("+M(YS+", "+XS)+") = atan2("+fN(yw)+", "+fN(xw)+") = <b>"+fD(beta)+"</b>")+
+    TX(`<b class="cbeta">β</b> (cung tím trên hình): hướng của đoạn O${W} so với trục x₀.`)+
+    LN("ψ = atan2("+M("$a_2sin$θ_2, $a_1 + $a_2cos$θ_2")+") = atan2("+fN(k2)+", "+fN(k1)+") = <b>"+fD(psi)+"</b>")+
+    TX(`<b class="cpsi">ψ</b> (cung xanh lá trên hình): góc giữa khâu 1 và đoạn O${W}.`));
+  h+=STEP(5,LN(M("$θ_1")+" = β − ψ = "+fD(beta)+" − "+par(fD(psi))+" = <b>"+fD(t1)+"</b>"+eqv(t1)))+"</div>";
+
+  h+=`<div class="method">Cách 2 — Đại số (đồng nhất với ma trận T)</div><div class="fxbox fx">`;
+  h+=TX("Cột tịnh tiến của T (động học thuận của khâu 1–2) phải bằng điểm cần đạt:");
+  h+=LN(M(`${XS} = $a_1$c_1 + $a_2$c_12,&emsp;${YS} = $a_1$s_1 + $a_2$s_12`));
+  h+=STEP(1,TX("Bình phương hai vế rồi cộng, dùng "+F("$c_1$c_12 + $s_1$s_12 = $c_2")+":")+
+    LN(M(`${XS}² + ${YS}² = $a_1² + $a_2² + 2$a_1$a_2$c_2`)+"&emsp;⇒&emsp;"+M("$c_2")+" = <b>"+fN(c2)+"</b>"));
+  h+=STEP(2,LN(M("$s_2")+" = σ√(1 − "+M("$c_2")+"²) = <b>"+fN(s2)+"</b>,&emsp;"+M("$θ_2")+" = atan2("+M("$s_2, $c_2")+") = <b>"+fD(t2)+"</b>")+
+    TX("Dùng atan2(sin, cos) thay cho arccos: tự cho đúng góc phần tư."));
+  h+=STEP(3,TX("Khai triển "+F("$c_12 = $c_1$c_2 − $s_1$s_2")+", "+F("$s_12 = $s_1$c_2 + $c_1$s_2")+" rồi gom theo "+F("$c_1, $s_1")+":")+
+    LN(M(`${XS} = $k_1$c_1 − $k_2$s_1,&emsp;${YS} = $k_2$c_1 + $k_1$s_1`))+
+    LN(M("$k_1 = $a_1 + $a_2$c_2")+" = <b>"+fN(k1)+"</b>,&emsp;"+M("$k_2 = $a_2$s_2")+" = <b>"+fN(k2)+"</b>"));
+  h+=STEP(4,TX("Đặt "+F("$k_1 = $ρcosψ")+", "+F("$k_2 = $ρsinψ")+" ⇒ "+F(XS+" = $ρcos($θ_1 + ψ)")+", "+F(YS+" = $ρsin($θ_1 + ψ)")+", suy ra:")+
+    LN(M("$θ_1")+" = atan2("+M(YS+", "+XS)+") − atan2("+M("$k_2, $k_1")+") = "+fD(beta)+" − "+par(fD(psi))+" = <b>"+fD(t1)+"</b>"+eqv(t1)));
+  h+=TX("⇒ Cùng kết quả với Cách 1 (ψ chính là atan2("+F("$k_2, $k_1")+")).")+"</div>";
+
+  if(n===3){const t3=phi-t1-t2;
+    h+=`<div class="method">Bước cuối — Góc khớp 3</div><div class="fxbox fx">`+
+      LN(M("$θ_3 = $φ − $θ_1 − $θ_2")+" = "+fD(phi)+" − "+par(fD(t1))+" − "+par(fD(t2))+" = <b>"+fD(t3)+"</b>"+eqv(t3))+"</div>";}
+
+  const solve=sg=>{const q2=sg*Math.acos(c2),q1=beta-Math.atan2(a2*Math.sin(q2),a1+a2*Math.cos(q2));return n===3?[q1,q2,phi-q1-q2]:[q1,q2];};
+  h+=`<div class="method">Kết quả — hai nghiệm</div><div class="sols">`;
+  for(const sg of [1,-1]){const q=solve(sg),cur=sg===sig;
+    h+=`<div class="solc${cur?" cur":""}"><div class="t">σ = ${sgS(sg)} · ${cur?"đang vẽ":(S.mode==="ik"?"bóng mờ trên hình":"nghiệm còn lại")}</div>`+
+      `<div class="fx">${q.map((v,i)=>M("$θ_"+(i+1))+" = <b>"+fD(wrapPi(v))+"</b>").join("<br>")}</div></div>`;}
+  h+="</div>";
+  if(Math.abs(c2)>1-1e-9)h+=TX("cos θ₂ = ±1 (tay duỗi thẳng hoặc gập hẳn) ⇒ hai nghiệm trùng nhau.");
+  const q=solve(sig);let ang=0,vx=0,vy=0;for(let i=0;i<n;i++){ang+=q[i];vx+=S.a[i]*Math.cos(ang);vy+=S.a[i]*Math.sin(ang);}
+  h+=`<div class="fxbox fx" style="margin-top:8px">`+TX("Kiểm tra: thế nghiệm đang vẽ vào công thức động học thuận")+
+    LN(M("$x")+" = <b>"+fN(vx)+"</b>,&ensp;"+M("$y")+" = <b>"+fN(vy)+"</b>&emsp;"+
+      (Math.hypot(vx-x,vy-y)<1e-6?'<span class="good">✓ trùng điểm cần đạt</span>':'<span class="fail">✗ lệch</span>'))+"</div>";
+  return h;}
+
+function setKin(k){S.kin=k;   // thẻ cách tính đi theo chế độ: thuận ở tab thuận, nghịch ở tab nghịch/quỹ đạo
+  document.getElementById("kinCardFK").hidden=k!=="fk";document.getElementById("kinCardIK").hidden=k!=="ik";
+  document.getElementById("kinCardJac").hidden=k!=="jac";
+  updatePanels();}
+
+// ---------- sliders ----------
+function buildSliders(){R().sliders();}
+function buildSlidersPlanar(){
+  const box=document.getElementById("sliders");box.innerHTML="";const cc=["","c2","c3"];
+  for(let i=0;i<S.dof;i++){const el=sEl(`θ${i+1}`,-180,180,S.th[i]*R2D,"°",cc[i],v=>{S.th[i]=v*D2R;render();},S.mode!=="fk");
+    el.querySelector("input").dataset.th=i;box.appendChild(el);}
+  if(S.mode==="ik"&&S.dof===3)box.appendChild(sEl("φ (hướng bàn tay)",-180,180,S.phi*R2D,"°","cp",v=>{S.phi=v*D2R;retarget();},false));
+  for(let i=0;i<S.dof;i++)box.appendChild(sEl(`a${i+1} (dài khâu)`,0.1,1.8,S.a[i],"",cc[i],v=>{S.a[i]=v;retarget();},false,0.05));
+  if(S.mode==="jac"){box.appendChild(sEl("α (hệ số học)",0.05,1,S.jac.alpha,"","",v=>{S.jac.alpha=v;updatePanels();},false,0.05));
+    box.appendChild(sEl("λ (DLS)",0.01,0.4,S.jac.lam,"","",v=>{S.jac.lam=v;updatePanels();},false,0.01));}}
+// đổi điểm đích / kích thước ⇒ giải lại theo chế độ đang mở
+function retarget(){if(S.mode==="ik")applyIKStep(false);else render();}
+function sEl(name,min,max,val,unit,cls,cb,dis,step){const w=document.createElement("div");w.className="slider";
+  const lab=document.createElement("div");lab.className="lab";
+  lab.innerHTML=`<b>${name}</b><span class="val">${(+val).toFixed(step?2:0)}${unit}</span>`;
+  const inp=document.createElement("input");inp.type="range";inp.min=min;inp.max=max;inp.step=step||1;inp.value=val;
+  if(cls)inp.className=cls;inp.disabled=!!dis;
+  inp.addEventListener("input",()=>{const v=parseFloat(inp.value);lab.querySelector(".val").textContent=v.toFixed(step?2:0)+unit;cb(v);});
+  w.appendChild(lab);w.appendChild(inp);return w;}
+
+// ---------- IK ----------
+function setReach(ok){S.reachable=ok;const b=document.getElementById("reachBadge");
+  b.textContent=ok?"Trong tầm với":"Ngoài tầm với";b.className="badge "+(ok?"ok":"bad");}
+
+// ---------- động học nghịch từng bước: bảng thông số D–H → T → giải từng ẩn → kiểm tra ----------
+const SB=["₁","₂","₃"];
+const STEPM={
+  dh:    {s:"Bảng thông số D–H",   t:"Lập bảng thông số D–H — cột θ là ẩn",               ph:0},
+  amat:  {s:"Aᵢ",         t:"Mỗi hàng của bảng → một ma trận khâu Aᵢ",  ph:0},
+  chain: {s:"T = A₁A₂…",  t:"Nhân chuỗi: ma trận T theo các ẩn θ",       ph:0},
+  equate:{s:"T = T đích", t:"Cho T bằng tư thế đích → hệ phương trình",  ph:0},
+  wrist: {s:"Cổ tay W",   t:"Tách tâm cổ tay W: đưa 3R về 2R",           ph:1},
+  r:     {s:"r²",         t:"Khử θ₁: bình phương rồi cộng",               ph:1},
+  cos:   {s:"cos θ₂",     t:"Tính cos θ₂ — kiểm tra có nghiệm",           ph:1},
+  t2:    {s:"θ₂",         t:"Tìm θ₂ — hai nhánh σ = ±1",                  ph:1},
+  beta:  {s:"β",          t:"Góc β — hướng từ O tới điểm cần đạt",        ph:1},
+  psi:   {s:"ψ",          t:"Góc ψ — độ lệch do khuỷu gập",               ph:1},
+  t1:    {s:"θ₁",         t:"Tìm θ₁ = β − ψ",                             ph:1},
+  t3:    {s:"θ₃",         t:"Tìm θ₃ = φ − θ₁ − θ₂",                       ph:1},
+  verify:{s:"Kiểm tra",   t:"Thế nghiệm vào bảng thông số D–H → tính T bằng số",   ph:2},
+  sols:  {s:"Hai nghiệm", t:"Tổng kết: một đích, hai bộ góc khớp",        ph:2}};
+const PHASES=["① Mô hình D–H → T","② Giải từng ẩn","③ Kiểm tra"];
+// ví dụ số của giáo án (phần 4: 2R, phần 5: 3R), phóng to ×k cho vừa hình — góc khớp giữ nguyên
+const PRESET={2:{a:[1.2,0.9],x:1.5,y:0.6,k:3},3:{a:[1.2,1.0,0.8],x:1.8,y:0.6,phi:30,k:4}};
+function stepIds(){const t=S.dof===3;
+  return ["dh","amat","chain","equate",...(t?["wrist"]:[]),"r","cos","t2","beta","psi","t1",...(t?["t3"]:[]),"verify","sols"];}
+function ikStepData(){
+  const n=S.dof,a1=S.a[0],a2=S.a[1],a3=S.a[2],x=S.target.x,y=S.target.y,phi=S.phi,sig=S.elbow;
+  const xw=n===3?x-a3*Math.cos(phi):x,yw=n===3?y-a3*Math.sin(phi):y,r2=xw*xw+yw*yw,c2r=(r2-a1*a1-a2*a2)/(2*a1*a2);
+  const d={n,a1,a2,a3,x,y,phi,sig,xw,yw,r2,r:Math.sqrt(r2),c2r,ok:Math.abs(c2r)<=1+1e-9,
+    c2:Math.max(-1,Math.min(1,c2r)),rin:Math.abs(a1-a2),rout:a1+a2};
+  if(d.ok){const t2=sig*Math.acos(d.c2),s2=Math.sin(t2),k1=a1+a2*d.c2,k2=a2*s2,beta=Math.atan2(yw,xw),psi=Math.atan2(k2,k1),t1=beta-psi;
+    Object.assign(d,{t2,s2,k1,k2,beta,psi,t1,t3:phi-t1-t2});}
+  return d;}
+const stepLimit=(ids,d)=>d.ok?ids.length-1:ids.indexOf("cos");   // vô nghiệm ⇒ dừng ở bước cos θ₂
+// nghiệm theo nhánh sg: bộ góc khớp và vị trí khuỷu E
+function branch(d,sg){const q2=sg*Math.acos(d.c2),q1=d.beta-Math.atan2(d.a2*Math.sin(q2),d.a1+d.a2*Math.cos(q2));
+  return {q:[q1,q2,d.phi-q1-q2].slice(0,d.n),E:{x:d.a1*Math.cos(q1),y:d.a1*Math.sin(q1)}};}
+// tư thế cánh tay ở mỗi bước: ẩn nào đã giải thì khớp đó quay tới giá trị của nó, còn lại θ = 0
+function stepPose(id,d){if(!d.ok)return [0,0,0];
+  const k=["t2","beta","psi"].includes(id)?1:id==="t1"?2:["t3","verify","sols"].includes(id)?3:0;
+  return [k>=2?wrapPi(d.t1):0,k>=1?d.t2:0,k>=3&&d.n===3?wrapPi(d.t3):0];}
+
+let stepTimer=0;
+function stepGo(i,anim){const ids=stepIds(),d=ikStepData();
+  S.step=Math.max(0,Math.min(i,stepLimit(ids,d)));
+  const to=stepPose(ids[S.step],d);
+  if(anim){S.anim={from:S.th.slice(),to,t0:performance.now(),dur:800};if(!S.animRaf)S.animRaf=requestAnimationFrame(stepTick);}
+  else{S.anim=null;S.th=to;render();}
+  schedulePlay();}
+function stepTick(now){S.animRaf=0;const A=S.anim;if(!A||S.mode!=="ik")return;
+  const t=Math.min(1,(now-A.t0)/A.dur),e=t<0.5?2*t*t:1-2*(1-t)*(1-t);
+  if(t<1){S.th=A.from.map((v,i)=>v+wrapPi(A.to[i]-v)*e);S.animRaf=requestAnimationFrame(stepTick);}
+  else{S.th=A.to.slice();S.anim=null;}
+  render();}
+function schedulePlay(){clearTimeout(stepTimer);if(!S.stepPlay)return;
+  if(S.step>=stepLimit(stepIds(),ikStepData())){S.stepPlay=false;document.getElementById("stPlay").textContent="▶ Tự chạy";return;}
+  stepTimer=setTimeout(()=>{if(S.stepPlay&&S.mode==="ik")stepGo(S.step+1,true);},4200);}
+function setStepPlay(on){S.stepPlay=on;document.getElementById("stPlay").textContent=on?"⏸ Dừng":"▶ Tự chạy";
+  if(!on){clearTimeout(stepTimer);clearTimeout(elTimer);clearTimeout(stTimer);return;}
+  R().stepAutoplay();}
+function applyIKStep(anim){setReach(ikStepData().ok);stepGo(S.step,anim);}
+function syncThetaSliders(){document.querySelectorAll("#sliders input[data-th]").forEach(inp=>{
+  const v=S.th[+inp.dataset.th]*R2D;inp.value=v;inp.parentNode.querySelector(".val").textContent=v.toFixed(0)+"°";});}
+
+function stepPanels(){const ids=stepIds(),d=ikStepData(),lim=stepLimit(ids,d);
+  setHTML("stepList",stepListHTML(ids,lim));setHTML("stepBody",stepHTML(ids,d));
+  document.getElementById("stFirst").disabled=S.step===0;document.getElementById("stPrev").disabled=S.step===0;
+  document.getElementById("stNext").disabled=S.step>=lim;document.getElementById("stLast").disabled=S.step>=lim;
+  document.getElementById("stCount").textContent=(S.step+1)+" / "+ids.length;syncThetaSliders();}
+function stepListHTML(ids,lim){let h="",ph=-1;
+  ids.forEach((id,i)=>{const m=STEPM[id];
+    if(m.ph!==ph){h+=(ph>=0?"</div></div>":"")+`<div class="sgroup"><div class="sgt">${PHASES[m.ph]}</div><div class="spills">`;ph=m.ph;}
+    const c=i===S.step?" cur":i<S.step?" done":"";
+    h+=`<button class="spill${c}" data-st="${i}"${i>lim?" disabled":""}><span class="k">${i+1}</span>${m.s}</button>`;});
+  return h+"</div></div>";}
+function presetNote(){const n=S.dof,P=PRESET[n],e=(u,v)=>Math.abs(u-v)<1e-6;
+  const hit=P.a.every((v,i)=>e(S.a[i],v))&&e(S.target.x,P.x)&&e(S.target.y,P.y)&&(n===2||e(S.phi,P.phi*D2R));
+  return hit?TX(`Đây là ví dụ số của giáo án (phần ${n===2?4:5}) phóng to ×${P.k} cho vừa hình — phóng to không làm đổi góc khớp.`):"";}
+
+function stepHTML(ids,d){
+  const id=ids[S.step],m=STEPM[id],n=d.n,I=[...Array(n).keys()],A=i=>fN(S.a[i],2);
+  const XS=n===3?"$x_w":"$x",YS=n===3?"$y_w":"$y",Wn=n===3?"W":"H",J=n===3?"khớp 3":"bàn tay",sg=s=>s>0?"+1":"−1";
+  const goal=t=>`<div class="task">${t}</div>`,box=c=>`<div class="fxbox fx">${c}</div>`,fig=t=>`<div class="onfig"><b>Trên hình:</b> ${t}</div>`;
+  const cS=["1","12","123"],xSym=I.map(i=>A(i)+M("$c_"+cS[i])).join(" + "),ySym=I.map(i=>A(i)+M("$s_"+cS[i])).join(" + ");
+  const PA=(k,aT)=>BM([[M("$c_"+k),"−"+M("$s_"+k),"0",aT+M("$c_"+k)],[M("$s_"+k),M("$c_"+k),"0",aT+M("$s_"+k)],["0","0","1","0"],["0","0","0","1"]],true,true);
+  const dhTable=cell=>`<table class="dh"><thead><tr><th>Khâu i</th><th>aᵢ</th><th>αᵢ</th><th>dᵢ</th><th>θᵢ</th></tr></thead><tbody>`+
+    I.map(i=>`<tr><td>${i+1}</td><td>${A(i)}</td><td>0°</td><td>0</td>${cell(i)}</tr>`).join("")+`</tbody></table>`;
+  let h=`<div class="shead"><div class="sph">${PHASES[m.ph]}</div><div class="stitle">Bước ${S.step+1}/${ids.length} — ${m.t}</div></div>`;
+  switch(id){
+  case "dh":
+    h+=goal("Bài nghịch cũng bắt đầu từ mô hình D–H như bài thuận. Khác ở chỗ: cột <b>θ là ẩn cần tìm</b>; d, a, α là kích thước đã biết của robot.");
+    h+=dhTable(i=>`<td class="unk">θ${SB[i]} = ?</td>`);
+    h+=box(LN("Cho: "+M("$x")+" = <b>"+fN(d.x)+"</b>,&ensp;"+M("$y")+" = <b>"+fN(d.y)+"</b>"+(n===3?",&ensp;"+M("$φ")+" = <b>"+fD(d.phi)+"</b>":"")+",&ensp;nhánh σ = <b>"+sg(d.sig)+"</b>")+
+      TX("Robot phẳng: mọi trục khớp zᵢ song song, vuông góc mặt phẳng hình ⇒ <b>dᵢ = 0, αᵢ = 0</b>; trục xᵢ đặt dọc khâu i ⇒ <b>aᵢ = chiều dài khâu</b>.")+
+      TX(`Cần tìm ${n} ẩn ${F(I.map(i=>"$θ_"+(i+1)).join(", "))} để bàn tay tới đúng điểm cho trước${n===3?" với hướng φ":""}.`)+presetNote());
+    h+=fig("tư thế gốc θᵢ = 0 — tư thế dùng để đặt hệ trục và lập bảng — với các hệ tọa độ khâu {0}, {1}, …; dấu ⊕ là điểm đích.");break;
+
+  case "amat":
+    h+=goal("Thay từng hàng của bảng vào công thức D–H. Mỗi ma trận khâu Aᵢ chỉ chứa <b>một</b> ẩn là θᵢ.");
+    h+=box(LN(M("Aᵢ = Rot($z, $θ_i)·Trans($z, $d_i)·Trans($x, $a_i)·Rot($x, $α_i)"))+
+      LN(M("$d_i = 0, $α_i = 0")+"&emsp;⇒&emsp;Aᵢ = "+PA("i",M("$a_i")))+
+      TX("Viết tắt "+F("$c_i")+" = cos θᵢ, "+F("$s_i")+" = sin θᵢ. Khối xanh: phép quay θᵢ quanh z; cột cam: gốc hệ {i} nhìn từ hệ {i−1}."));
+    h+=`<div class="fx elem">`+I.map(i=>`<div>${TX(`Hàng ${i+1}: (θ${SB[i]}, 0, ${A(i)}, 0°)`)}${LN("A"+SB[i]+" = "+PA(String(i+1),A(i)))}</div>`).join("")+`</div>`;
+    h+=fig("nhãn Aᵢ trên từng khâu: Aᵢ đưa hệ {i−1} tới hệ {i} — quay θᵢ quanh zᵢ₋₁ rồi tiến aᵢ dọc xᵢ.");break;
+
+  case "chain":{const k=cS[n-1];
+    h+=goal("Nhân các Aᵢ theo thứ tự được ma trận tổng T = ⁰T"+SB[n-1]+": vị trí và hướng bàn tay viết theo các ẩn θ.");
+    h+=box(LN("T = A₁·A₂"+(n===3?"·A₃":"")+" = "+BM([[M("$c_"+k),"−"+M("$s_"+k),"0",xSym],[M("$s_"+k),M("$c_"+k),"0",ySym],["0","0","1","0"],["0","0","0","1"]],true,true))+
+      TX("Ví dụ phần tử (1, 4) của A₁·A₂ = hàng 1 của A₁ nhân với cột 4 của A₂:")+
+      LN(M("(A₁A₂)₁₄ = $c_1·")+A(1)+M("$c_2 + (−$s_1)·")+A(1)+M("$s_2 + 0·0 + ")+A(0)+M("$c_1·1"))+
+      LN("&emsp;= "+A(0)+M("$c_1 + ")+A(1)+M("($c_1$c_2 − $s_1$s_2) = ")+"<b>"+A(0)+M("$c_1 + ")+A(1)+M("$c_12")+"</b>")+
+      TX("nhờ công thức cộng góc "+F("$c_1$c_2 − $s_1$s_2 = $c_12")+", "+F("$s_1$c_2 + $c_1$s_2 = $s_12")+" (với "+F("$c_12")+" = cos("+M("$θ_1 + $θ_2")+"))."+
+        (n===3?" Nhân tiếp với A₃, góc cộng dồn: "+F("$c_123")+" = cos("+M("$θ_1 + $θ_2 + $θ_3")+").":"")));
+    h+=fig("mũi tên cong T nối hệ gốc {0} với hệ bàn tay {"+n+"}. Ở tư thế gốc, bàn tay chưa ở điểm đích.");break;}
+
+  case "equate":{const cp=Math.cos(d.phi),sp=Math.sin(d.phi);
+    const Td=n===3?[[fN(cp),fN(-sp),"0",fN(d.x)],[fN(sp),fN(cp),"0",fN(d.y)],["0","0","1","0"],["0","0","0","1"]]
+      :[["∗","∗","0",fN(d.x)],["∗","∗","0",fN(d.y)],["0","0","1","0"],["0","0","0","1"]];
+    h+=goal("Bài nghịch cho trước tư thế bàn tay. Viết nó thành ma trận đích rồi cho <b>T(θ) = T<sub>đích</sub></b>; so từng phần tử ⇒ hệ phương trình.");
+    h+=box(LN("T<sub>đích</sub> = "+BM(Td,true,n===3))+
+      TX(n===3?"Khối quay là Rot(z, φ) với φ = "+fD(d.phi)+"; cột cam là tọa độ điểm đích.":"Robot 2R chỉ chọn được vị trí; hai cột hướng (∗) là hệ quả của nghiệm, không cho trước.")+
+      LN("(1)&ensp;T₁₄:&ensp;"+xSym+" = <b>"+fN(d.x)+"</b>")+
+      LN("(2)&ensp;T₂₄:&ensp;"+ySym+" = <b>"+fN(d.y)+"</b>")+
+      (n===3?LN("(3)&ensp;T₁₁, T₂₁:&ensp;"+M("$c_123")+" = cos"+M("$φ")+", "+M("$s_123")+" = sin"+M("$φ")+"&emsp;⇒&emsp;"+M("$θ_1 + $θ_2 + $θ_3")+" = <b>"+fD(d.phi)+"</b>"):"")+
+      TX(`${n} phương trình, ${n} ẩn — nhưng là lượng giác <b>phi tuyến</b>, không giải thẳng được. Chiến lược: `+(n===3?"tách cổ tay W, ":"")+
+        "khử θ₁ để tìm θ₂ trước, sau đó θ₁"+(n===3?", cuối cùng θ₃":"")+"."));
+    h+=fig("điểm đích"+(n===3?" H và mũi tên hướng φ":"")+"; đoạn đỏ nét đứt là khoảng còn thiếu giữa bàn tay (tư thế gốc) và đích.");break;}
+
+  case "wrist":
+    h+=goal("Gốc hệ {2} nằm ở khớp 3 — gọi là <b>tâm cổ tay W</b>. Vị trí W chỉ phụ thuộc θ₁, θ₂, nên biết W là quay về bài 2R.");
+    h+=box(LN("⁰T₃ = ⁰T₂·A₃&emsp;⇒&emsp;⁰T₂ = ⁰T₃·A₃⁻¹,&emsp;A₃⁻¹ = "+BM([[M("$c_3"),M("$s_3"),"0","−"+M("$a_3")],["−"+M("$s_3"),M("$c_3"),"0","0"],["0","0","1","0"],["0","0","0","1"]],true,true))+
+      TX("Cột tịnh tiến của ⁰T₂ = "+F("$p − $a_3·")+"(cột 1 của R); cột 1 của R là trục x₃ = (cos φ, sin φ):")+
+      LN(M("$x_w = $x − $a_3cos$φ")+" = "+fN(d.x)+" − "+A(2)+"·cos("+fD(d.phi)+") = <b>"+fN(d.xw)+"</b>")+
+      LN(M("$y_w = $y − $a_3sin$φ")+" = "+fN(d.y)+" − "+A(2)+"·sin("+fD(d.phi)+") = <b>"+fN(d.yw)+"</b>")+
+      TX("⇒ Còn lại bài 2R: "+F("$x_w = $a_1$c_1 + $a_2$c_12")+", "+F("$y_w = $a_1$s_1 + $a_2$s_12")+"."));
+    h+=fig("từ đích H lùi một đoạn a₃ ngược hướng φ (nét cam) ⇒ tâm cổ tay W.");break;
+
+  case "r":
+    h+=goal("Khử θ₁: bình phương hai phương trình vị trí rồi cộng — mọi số hạng chứa θ₁ triệt tiêu, chỉ còn θ₂.");
+    h+=box(LN(M(`${XS}² + ${YS}² = ($a_1$c_1 + $a_2$c_12)² + ($a_1$s_1 + $a_2$s_12)²`))+
+      LN("&emsp;= "+M("$a_1²($c_1² + $s_1²) + $a_2²($c_12² + $s_12²) + 2$a_1$a_2($c_1$c_12 + $s_1$s_12)"))+
+      LN("&emsp;= <b>"+M("$a_1² + $a_2² + 2$a_1$a_2$c_2")+"</b>")+
+      TX("vì "+F("$c_1² + $s_1² = 1")+" và "+F("$c_1$c_12 + $s_1$s_12")+" = cos((θ₁ + θ₂) − θ₁) = "+F("$c_2")+".")+
+      LN(M("$r²")+" = "+M(`${XS}² + ${YS}²`)+" = "+par(fN(d.xw))+"² + "+par(fN(d.yw))+"² = <b>"+fN(d.r2)+"</b>,&emsp;"+M("$r")+" = <b>"+fN(d.r)+"</b>")+
+      TX("Ý nghĩa hình học: r = |O"+Wn+"| không đổi khi xoay cả cánh tay quanh O — chỉ phụ thuộc độ gập khuỷu θ₂."));
+    h+=fig("đoạn O"+Wn+" dài r và đường tròn tâm O bán kính r"+(d.ok?" (nét đứt xanh).":" — màu đỏ: r nằm ngoài vành khăn làm việc."));break;
+
+  case "cos":
+    h+=goal("Từ đẳng thức vừa có, cô lập cos θ₂. Vì luôn phải có |cos θ₂| ≤ 1 nên đây cũng là bước <b>kiểm tra điểm có tới được không</b>.");
+    h+=box(LN(M("cos$θ_2")+" = "+FR(M("$r² − $a_1² − $a_2²"),M("2$a_1$a_2"))+" = "+
+        FR(fN(d.r2)+" − "+fN(d.a1*d.a1)+" − "+fN(d.a2*d.a2),"2·"+A(0)+"·"+A(1))+" = <b"+(d.ok?"":' class="fail"')+">"+fN(d.c2r)+"</b>")+
+      LN("|cos"+M("$θ_2")+"| ≤ 1 ⇔ "+M("|$a_1 − $a_2| ≤ $r ≤ $a_1 + $a_2")+":&ensp;"+fN(d.rin,2)+" ≤ "+fN(d.r)+" ≤ "+fN(d.rout,2)+"&ensp;"+
+        (d.ok?'<span class="good">✓ có nghiệm</span>':'<span class="fail">✗ không thỏa</span>'))+
+      TX("Cùng kết quả bằng hình học: định lý cos trong tam giác O–E–"+Wn+" (E là khuỷu) có ba cạnh a₁, a₂, r và góc trong tại E bằng 180° − θ₂."));
+    if(!d.ok)h+=`<div class="fxbox">`+TX(`<span class="fail">Vô nghiệm — dừng tại bước này.</span> ${d.r>d.rout?"Điểm xa hơn tầm với tối đa a₁ + a₂":"Điểm nằm trong vùng rỗng, gần gốc hơn |a₁ − a₂|"}. `+
+      (n===3?"Với hướng φ này cổ tay W không tới được: đổi φ hoặc dời điểm đích.":"Kéo điểm đích vào trong vành nét đứt trên hình.")+" Các bước sau bị khóa.")+`</div>`;
+    h+=fig(d.ok?"tam giác O–E–"+Wn+" (tô xanh) có ba cạnh đã biết; khuỷu còn có thể ở E′ đối xứng qua O"+Wn+" (nét đứt) — đó là nghiệm thứ hai."
+      :"đường tròn bán kính r (đỏ) không nằm trong vành khăn làm việc.");break;
+
+  case "t2":
+    h+=goal("Có cos θ₂ thì sin θ₂ = ±√(1 − cos²θ₂): <b>hai dấu → hai nghiệm</b>, ứng với khuỷu gập về hai phía. σ chọn dấu.");
+    h+=box(LN(M("$s_2")+" = σ√(1 − "+M("$c_2")+"²) = ±√(1 − "+par(fN(d.c2))+"²) = ±"+fN(Math.abs(d.s2))+"&emsp;→&emsp;σ = "+sg(d.sig)+":&ensp;"+M("$s_2")+" = <b>"+fN(d.s2)+"</b>")+
+      LN(M("$θ_2")+" = atan2("+M("$s_2, $c_2")+") = atan2("+fN(d.s2)+", "+fN(d.c2)+") = <b>"+fD(d.t2)+"</b>")+
+      LN("Nhánh còn lại σ = "+sg(-d.sig)+":&ensp;"+M("$θ_2")+" = "+fD(-d.t2))+
+      TX("Dùng atan2(sin, cos) thay cho arccos: arccos luôn trả góc dương nên làm mất nhánh âm.")+
+      (Math.abs(d.c2)>1-1e-9?TX("cos θ₂ = ±1 (tay duỗi thẳng hoặc gập hẳn) ⇒ sin θ₂ = 0: hai nhánh trùng nhau — vị trí kỳ dị."):""));
+    h+=fig("khớp 2 gập θ₂ trong khi khâu 1 vẫn nằm trên x₀: "+J+" rơi đúng lên đường tròn r — vì r chỉ phụ thuộc θ₂.");break;
+
+  case "beta":
+    h+=goal("β là hướng của đoạn O"+Wn+" so với trục x₀ — tính thẳng từ tọa độ điểm cần đạt.");
+    h+=box(LN("β = atan2("+M(YS+", "+XS)+") = atan2("+fN(d.yw)+", "+fN(d.xw)+") = <b>"+fD(d.beta)+"</b>")+
+      TX("atan2 xét dấu cả hai đối số nên cho đúng góc phần tư, trong (−180°, 180°]; arctan(y/x) thì nhầm góc phần tư I với III."));
+    h+=fig('cung <b class="cbeta">tím β</b> từ trục x₀ tới đoạn O'+Wn+". Khớp 1 vẫn chưa quay.");break;
+
+  case "psi":
+    h+=goal("ψ là góc lệch giữa khâu 1 và đoạn O"+Wn+" do khuỷu gập θ₂ gây ra. Gom hai phương trình vị trí theo "+F("$c_1, $s_1")+" để tìm.");
+    h+=box(TX("Khai triển "+F("$c_12 = $c_1$c_2 − $s_1$s_2")+", "+F("$s_12 = $s_1$c_2 + $c_1$s_2")+" rồi gom:")+
+      LN(M(`${XS} = $k_1$c_1 − $k_2$s_1,&emsp;${YS} = $k_2$c_1 + $k_1$s_1`))+
+      LN(M("$k_1 = $a_1 + $a_2$c_2")+" = "+A(0)+" + "+A(1)+"·"+par(fN(d.c2))+" = <b>"+fN(d.k1)+"</b>")+
+      LN(M("$k_2 = $a_2$s_2")+" = "+A(1)+"·"+par(fN(d.s2))+" = <b>"+fN(d.k2)+"</b>")+
+      LN("ψ = atan2("+M("$k_2, $k_1")+") = atan2("+fN(d.k2)+", "+fN(d.k1)+") = <b>"+fD(d.psi)+"</b>")+
+      TX("Nhận xét: (k₁, k₂) chính là tọa độ của "+J+" khi θ₁ = 0 — đúng tư thế đang vẽ."));
+    h+=fig('khâu 1 đang nằm trên x₀ (θ₁ = 0), nên cung <b class="cpsi">xanh lá ψ</b> đo từ khâu 1 tới đoạn O→'+J+".");break;
+
+  case "t1":
+    h+=goal("Hình dạng tam giác đã cố định; chỉ cần <b>xoay cả cánh tay</b> quanh O một góc θ₁ để đoạn O→"+J+" trùng O"+Wn+".");
+    h+=box(TX("Đặt "+F("$k_1 = $ρcosψ")+", "+F("$k_2 = $ρsinψ")+" (ρ = r) ⇒ "+F(XS+" = $ρcos($θ_1 + ψ)")+", "+F(YS+" = $ρsin($θ_1 + ψ)")+" ⇒ θ₁ + ψ = β:")+
+      LN(M("$θ_1")+" = β − ψ = "+fD(d.beta)+" − "+par(fD(d.psi))+" = <b>"+fD(d.t1)+"</b>"+eqv(d.t1)));
+    h+=fig("khớp 1 quay θ₁: "+J+" trượt dọc đường tròn r tới đúng "+Wn+"; hai cung β (tím) và ψ (xanh lá) ghép thành θ₁ = β − ψ.");break;
+
+  case "t3":
+    h+=goal("Hai khâu đầu đã đưa W tới đúng chỗ; khâu 3 bù phần hướng còn thiếu theo phương trình (3) ở bước 4.");
+    h+=box(LN(M("$θ_3 = $φ − $θ_1 − $θ_2")+" = "+fD(d.phi)+" − "+par(fD(d.t1))+" − "+par(fD(d.t2))+" = <b>"+fD(d.t3)+"</b>"+eqv(d.t3)));
+    h+=fig("khớp 3 quay θ₃: khâu 3 hướng theo φ (mũi tên), bàn tay tới đúng H.");break;
+
+  case "verify":{const q=[d.t1,d.t2,d.t3].slice(0,n).map(wrapPi),As=q.map((t,i)=>dhMat(t,0,S.a[i],0));
+    let T=As[0];for(let i=1;i<n;i++)T=mul(T,As[i]);
+    const NM=Mx=>BM(Mx.map(r=>r.map(v=>fN(v))),true,true),phT=Math.atan2(T[1][0],T[0][0]);
+    const chk=b=>b?'<span class="good">✓</span>':'<span class="fail">✗</span>';
+    h+=goal("Luôn kiểm tra ngược: thế các góc vừa tìm vào bảng thông số D–H, tính Aᵢ và T <b>bằng số</b> (động học thuận), rồi so với đích.");
+    h+=dhTable(i=>`<td class="th">${fD(q[i])}</td>`);
+    h+=`<div class="fx elem">`+As.map((Mx,i)=>`<div>${LN("A"+SB[i]+" =")}${NM(Mx)}</div>`).join("")+`</div>`;
+    h+=box(LN("T = A₁·A₂"+(n===3?"·A₃":"")+" = "+NM(T))+
+      LN("T₁₄ = <b>"+fN(T[0][3])+"</b>&ensp;so với "+M("$x")+" = "+fN(d.x)+"&ensp;"+chk(Math.abs(T[0][3]-d.x)<1e-6))+
+      LN("T₂₄ = <b>"+fN(T[1][3])+"</b>&ensp;so với "+M("$y")+" = "+fN(d.y)+"&ensp;"+chk(Math.abs(T[1][3]-d.y)<1e-6))+
+      (n===3?LN("atan2(T₂₁, T₁₁) = <b>"+fD(phT)+"</b>&ensp;so với "+M("$φ")+" = "+fD(wrapPi(d.phi))+"&ensp;"+chk(Math.abs(wrapPi(phT-d.phi))<1e-6))
+        :LN("Hướng "+M("$φ")+" = atan2(T₂₁, T₁₁) = "+fD(phT)+"&ensp;(hệ quả — 2R không chọn được)")));
+    h+=fig("cánh tay ở nghiệm vừa tìm, kèm hệ tọa độ các khâu; bàn tay trùng điểm đích.");break;}
+
+  case "sols":{
+    h+=goal("Cùng một điểm đích"+(n===3?" và hướng φ":"")+" có <b>hai bộ góc khớp</b>; cả hai đều thỏa T(θ) = T<sub>đích</sub>.");
+    h+=`<div class="sols">`+[1,-1].map(s=>{const q=branch(d,s).q,cur=s===d.sig;let ang=0,vx=0,vy=0;
+      q.forEach((v,i)=>{ang+=v;vx+=S.a[i]*Math.cos(ang);vy+=S.a[i]*Math.sin(ang);});
+      return `<div class="solc${cur?" cur":""}"><div class="t">σ = ${sg(s)} · ${cur?"đang vẽ":"bóng mờ trên hình"}</div><div class="fx">`+
+        q.map((v,i)=>M("$θ_"+(i+1))+" = <b>"+fD(wrapPi(v))+"</b>").join("<br>")+
+        `<br><span class="tx">thuận → (${fN(vx)}, ${fN(vy)}) ${Math.hypot(vx-d.x,vy-d.y)<1e-6?'<span class="good">✓</span>':'<span class="fail">✗</span>'}</span></div></div>`;}).join("")+`</div>`;
+    if(Math.abs(d.c2)>1-1e-9)h+=TX("cos θ₂ = ±1 ⇒ hai nghiệm trùng nhau (vị trí kỳ dị).");
+    const chips=["Bảng thông số D–H","Aᵢ","T = A₁A₂"+(n===3?"A₃":""),"T = T đích",...(n===3?["W = H − a₃(cφ, sφ)"]:[]),"r²","cos θ₂, |·| ≤ 1 ?",
+      "θ₂ = atan2(±s₂, c₂)","β, ψ","θ₁ = β − ψ",...(n===3?["θ₃ = φ − θ₁ − θ₂"]:[]),"Kiểm tra bằng T số"];
+    h+=`<div class="method">Toàn bộ quy trình</div><div class="flow">`+chips.map(t=>`<span class="chip">${t}</span>`).join('<span class="arr">→</span>')+`</div>`;
+    h+=TX("Xem nhánh còn lại chạy lại từ đầu: bấm nút “Cấu hình” để đổi σ, rồi ⏮ và ▶ Tự chạy.");
+    h+=fig("nghiệm đang chọn (đậm) và nghiệm còn lại (mờ) — cùng đặt bàn tay tại đích.");break;}
+  }
+  return h;}
+
+// lớp vẽ trên canvas cho từng bước (tọa độ thế giới)
+const mid=(p,q)=>({x:(p.x+q.x)/2,y:(p.y+q.y)/2});
+function wLine(p,q,col,lw,dash){const A=w2s(p.x,p.y),B=w2s(q.x,q.y);ctx.save();ctx.strokeStyle=col;ctx.lineWidth=lw;ctx.setLineDash(dash||[]);
+  ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(B.x,B.y);ctx.stroke();ctx.restore();}
+function wCircle(r,col){const C=w2s(0,0);ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1.6;ctx.setLineDash([6,5]);
+  ctx.beginPath();ctx.arc(C.x,C.y,r*SCALE,0,7);ctx.stroke();ctx.restore();}
+function wWedge(r,a0,a1,col,fill){if(Math.abs(a1-a0)<0.02)return;ctx.save();
+  arcPath(r,a0,a1,true);ctx.fillStyle=fill;ctx.fill();arcPath(r,a0,a1,false);ctx.strokeStyle=col;ctx.lineWidth=2.2;ctx.stroke();ctx.restore();}
+function wLabel(p,txt,col,dx,dy){const s=w2s(p.x,p.y),x=s.x+(dx||0),y=s.y+(dy||0);ctx.save();ctx.font="bold 12px 'Courier New'";ctx.textAlign="center";
+  const tw=ctx.measureText(txt).width;ctx.fillStyle="rgba(255,255,255,.9)";ctx.fillRect(x-tw/2-3,y-9,tw+6,17);ctx.fillStyle=col;ctx.fillText(txt,x,y+4);ctx.restore();}
+function wDot(p,col,rad,sq){const s=w2s(p.x,p.y);ctx.fillStyle=col;
+  if(sq)ctx.fillRect(s.x-rad,s.y-rad,2*rad,2*rad);else{ctx.beginPath();ctx.arc(s.x,s.y,rad,0,7);ctx.fill();}}
+function wRing(p,col){const s=w2s(p.x,p.y);ctx.save();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();ctx.arc(s.x,s.y,12,0,7);ctx.stroke();ctx.restore();}
+function curveArrow(p,q,col,label){const A=w2s(p.x,p.y),B=w2s(q.x,q.y),C={x:(A.x+B.x)/2,y:Math.min(A.y,B.y)-80};
+  ctx.save();ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=1.8;ctx.setLineDash([6,4]);
+  ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.quadraticCurveTo(C.x,C.y,B.x,B.y);ctx.stroke();ctx.setLineDash([]);
+  const g=Math.atan2(B.y-C.y,B.x-C.x),h=9;ctx.beginPath();ctx.moveTo(B.x,B.y);
+  ctx.lineTo(B.x-h*Math.cos(g-0.4),B.y-h*Math.sin(g-0.4));ctx.lineTo(B.x-h*Math.cos(g+0.4),B.y-h*Math.sin(g+0.4));ctx.closePath();ctx.fill();ctx.restore();
+  wLabel(s2w((A.x+2*C.x+B.x)/4,(A.y+2*C.y+B.y)/4),label,col);}
+function stepUnder(d,id){
+  const O={x:0,y:0},W={x:d.xw,y:d.yw},red="#B23A2A";
+  if(!d.ok){if(id==="r"||id==="cos"){wCircle(d.r,red);wLine(O,W,red,1.4,[4,4]);}return;}
+  if(["r","cos","t2","beta","psi","t1"].includes(id))wCircle(d.r,"rgba(62,166,222,.85)");
+  if(["r","cos","t2","beta","psi","t1","t3"].includes(id))wLine(O,W,"rgba(14,61,99,.55)",1.4,[6,5]);
+  if(id==="cos")for(const s of [-d.sig,d.sig]){const E=branch(d,s).E,a=w2s(0,0),e=w2s(E.x,E.y),w=w2s(W.x,W.y);
+    ctx.save();ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(e.x,e.y);ctx.lineTo(w.x,w.y);ctx.closePath();
+    if(s===d.sig){ctx.fillStyle="rgba(62,166,222,.16)";ctx.fill();ctx.strokeStyle=COL.blue;ctx.lineWidth=2.4;}
+    else{ctx.strokeStyle="#9FBBD3";ctx.lineWidth=1.8;ctx.setLineDash([5,4]);}
+    ctx.stroke();ctx.restore();}
+  if(["beta","psi","t1"].includes(id))wWedge(BP.rb,0,d.beta,BP.beta,"rgba(123,79,184,.13)");
+  if(id==="psi"||id==="t1"){wWedge(BP.rp,S.th[0],S.th[0]+d.psi,BP.psi,"rgba(30,122,84,.15)");
+    wLine(O,joints()[2],"rgba(30,122,84,.85)",1.4,[3,4]);}
+  if(id==="sols"){const t0=S.th;S.th=branch(d,-d.sig).q.concat([0]);drawArm(joints(),["#9FBBD3","#A9D3EC","#EFC49A"],0.5);S.th=t0;}}
+function stepOver(d,id,P){
+  const n=d.n,O={x:0,y:0},W={x:d.xw,y:d.yw},H={x:d.x,y:d.y},red="#B23A2A",LC=[COL.blue,COL.sky,COL.amber];
+  const frames=()=>{let ang=0;for(let i=0;i<=n;i++){if(i)ang+=S.th[i-1];triad(P[i],ang);wLabel(P[i],"{"+i+"}",COL.deep,-17,-17);}};
+  const linkLab=f=>{let ang=0;for(let i=0;i<n;i++){ang+=S.th[i];const m=mid(P[i],P[i+1]);
+    wLabel({x:m.x-0.25*Math.sin(ang),y:m.y+0.25*Math.cos(ang)},f(i),LC[i]);}};
+  const phiArrow=()=>{const s=w2s(H.x,H.y),L=0.45*SCALE;arrow(s.x,s.y,s.x+L*Math.cos(d.phi),s.y-L*Math.sin(d.phi),COL.deep,"φ");};
+  const markW=()=>{if(n!==3)return;wDot(W,COL.deep,4.5,true);wLabel(W,"W",COL.deep,15,-15);};
+  const labBeta=()=>wLabel({x:(BP.rb+0.22)*Math.cos(d.beta/2),y:(BP.rb+0.22)*Math.sin(d.beta/2)},"β = "+fN(d.beta*R2D,1)+"°",BP.beta);
+  switch(id){
+    case "dh":frames();linkLab(i=>"a"+SB[i]+" = "+S.a[i].toFixed(2));break;
+    case "amat":frames();linkLab(i=>"A"+SB[i]+"(θ"+SB[i]+")");break;
+    case "chain":frames();curveArrow(O,P[n],COL.deep,"T = A₁·A₂"+(n===3?"·A₃":""));break;
+    case "equate":if(n===3)phiArrow();wLine(P[n],H,red,1.4,[4,4]);wLabel(mid(P[n],H),"T(θ) = T đích ?",red);wLabel(H,"đích",COL.deep,0,-24);break;
+    case "wrist":phiArrow();wLine(H,W,COL.amber,3,[7,5]);wLabel(mid(H,W),"a₃",COL.amber,0,-14);markW();break;
+    case "r":markW();wLabel(mid(O,W),"r = "+fN(d.r),d.ok?COL.deep:red,0,-14);break;
+    case "cos":markW();
+      if(d.ok){const E=branch(d,d.sig).E,E2=branch(d,-d.sig).E;
+        wLabel(mid(O,E),"a₁",COL.blue);wLabel(mid(E,W),"a₂",COL.sky);wLabel(mid(O,W),"r",COL.deep);
+        wDot(E,"#12558A",4.5);wLabel(E,"E",COL.deep,0,-17);wDot(E2,"#9FBBD3",4);wLabel(E2,"E′","#7C9DB8",0,-17);}
+      else wLabel(mid(O,W),"|cos θ₂| > 1",red,0,-14);
+      break;
+    case "t2":markW();wRing(P[2],COL.sky);break;
+    case "beta":markW();labBeta();break;
+    case "psi":case "t1":{markW();labBeta();const a=S.th[0]+d.psi/2;
+      wLabel({x:(BP.rp+0.24)*Math.cos(a),y:(BP.rp+0.24)*Math.sin(a)},"ψ = "+fN(d.psi*R2D,1)+"°",BP.psi);
+      if(id==="psi")wRing(P[2],BP.psi);break;}
+    case "t3":phiArrow();break;
+    case "verify":frames();wLabel(H,"✓ trùng đích","#1E7A54",0,-26);break;
+    case "sols":wLabel(P[1],"σ = "+sg1(d.sig),COL.deep,0,-18);wLabel(branch(d,-d.sig).E,"σ = "+sg1(-d.sig),"#7C9DB8",0,-18);break;
+  }}
+const sg1=s=>s>0?"+1":"−1";
+function stepBrief(d,id){const n=d.n,g=r=>fN(r*R2D,1)+"°",I=[...Array(n).keys()];
+  switch(id){
+    case "dh":return "ẩn: "+I.map(i=>"θ"+SB[i]).join(", ")+"   ·   a = "+I.map(i=>S.a[i].toFixed(2)).join(" / ");
+    case "amat":return I.map(i=>"A"+SB[i]+"(θ"+SB[i]+")").join(", ");
+    case "chain":return "T = A₁·A₂"+(n===3?"·A₃":"")+"  →  x, y theo các θ";
+    case "equate":return "T(θ) = T đích:  x = "+fN(d.x,2)+",  y = "+fN(d.y,2)+(n===3?",  φ = "+g(d.phi):"");
+    case "wrist":return "W = ("+fN(d.xw)+", "+fN(d.yw)+")";
+    case "r":return "r² = "+fN(d.r2)+",  r = "+fN(d.r)+(d.ok?"":"   ✗ ngoài vùng làm việc");
+    case "cos":return "cos θ₂ = "+fN(d.c2r)+(d.ok?"   ✓ có nghiệm":"   ✗ vô nghiệm — dừng");
+    case "t2":return "θ₂ = "+g(d.t2)+"   (σ = "+sg1(d.sig)+")";
+    case "beta":return "β = atan2(y, x) = "+g(d.beta);
+    case "psi":return "ψ = atan2(k₂, k₁) = "+g(d.psi);
+    case "t1":return "θ₁ = β − ψ = "+g(wrapPi(d.t1));
+    case "t3":return "θ₃ = φ − θ₁ − θ₂ = "+g(wrapPi(d.t3));
+    case "verify":return "thế θ vào D–H → T: bàn tay trùng đích  ✓";
+    case "sols":{const q=s=>branch(d,s).q.map(v=>g(wrapPi(v))).join(", ");return "σ=+1: ("+q(1)+")   σ=−1: ("+q(-1)+")";}}
+  return "";}
+function drawStepBanner(ids,d){const id=ids[S.step],l1="Bước "+(S.step+1)+"/"+ids.length+" · "+STEPM[id].t,l2=stepBrief(d,id);
+  ctx.save();ctx.font="bold 13px 'Segoe UI',system-ui,sans-serif";const w1=ctx.measureText(l1).width;
+  ctx.font="bold 12.5px 'Courier New'";const w2=ctx.measureText(l2).width;
+  const bw=Math.min(CW-20,Math.max(w1,w2)+22),bh=46,x=10,y=CH-bh-10;
+  ctx.fillStyle="rgba(255,255,255,.93)";ctx.strokeStyle=COL.sky;ctx.lineWidth=1.4;
+  if(ctx.roundRect){ctx.beginPath();ctx.roundRect(x,y,bw,bh,8);ctx.fill();ctx.stroke();}else{ctx.fillRect(x,y,bw,bh);ctx.strokeRect(x,y,bw,bh);}
+  ctx.fillStyle=COL.deep;ctx.font="bold 13px 'Segoe UI',system-ui,sans-serif";ctx.fillText(l1,x+11,y+19);
+  ctx.fillStyle=!d.ok&&(id==="r"||id==="cos")?"#B23A2A":COL.blue;ctx.font="bold 12.5px 'Courier New'";ctx.fillText(l2,x+11,y+37);ctx.restore();}
+
+const curStep=()=>R().step();
+const goStep=(i,anim)=>R().goStep(i,anim);   // cả hai hàm tự dừng ở bước cuối còn giải được
+document.getElementById("stFirst").onclick=()=>goStep(0,true);
+document.getElementById("stLast").onclick=()=>goStep(99,true);
+document.getElementById("stPrev").onclick=()=>goStep(curStep()-1,true);
+document.getElementById("stNext").onclick=()=>goStep(curStep()+1,true);
+document.getElementById("stPlay").onclick=()=>setStepPlay(!S.stepPlay);
+document.getElementById("stepList").addEventListener("click",e=>{const b=e.target.closest("[data-st]");if(b&&!b.disabled)goStep(+b.dataset.st,true);});
+document.getElementById("stPreset").onclick=()=>{if(R().preset){R().preset();return;}const P=PRESET[S.dof];
+  P.a.forEach((v,i)=>{S.a[i]=v;});S.target.x=P.x;S.target.y=P.y;if(S.dof===3)S.phi=P.phi*D2R;
+  S.elbow=1;setElbowLabel();buildSliders();S.step=0;applyIKStep(false);};
+document.addEventListener("keydown",e=>{if(S.mode!=="ik"||/INPUT|SELECT|TEXTAREA|BUTTON/.test(e.target.tagName))return;
+  if(e.key==="ArrowRight"){goStep(curStep()+1,true);e.preventDefault();}
+  else if(e.key==="ArrowLeft"){goStep(curStep()-1,true);e.preventDefault();}});
+
+// ---------- interactions ----------
+function pw(ev){const r=cv.getBoundingClientRect();return s2w((ev.clientX-r.left)*(CW/r.width),(ev.clientY-r.top)*(CH/r.height));}
+let dragging=false;
+let orb=null;
+cv.addEventListener("pointerdown",ev=>{
+  if(kg3d()){dragging=true;orb={x:ev.clientX,y:ev.clientY};cv.setPointerCapture(ev.pointerId);return;}
+  if(S.mode==="fk")return;dragging=true;cv.setPointerCapture(ev.pointerId);
+  const w=pw(ev);S.target.x=w.x;S.target.y=w.y;S.cursor=w;retarget();});
+cv.addEventListener("pointermove",ev=>{
+  if(kg3d()){if(!dragging||!orb)return;                    // kéo chuột = xoay góc nhìn
+    const C=cam();C.yaw-=(ev.clientX-orb.x)*0.011;
+    C.pitch=Math.max(-1.45,Math.min(1.45,C.pitch+(ev.clientY-orb.y)*0.011));
+    orb={x:ev.clientX,y:ev.clientY};render();return;}
+  S.cursor=pw(ev);if(dragging){S.target.x=S.cursor.x;S.target.y=S.cursor.y;
+  retarget();}else if(S.mode!=="fk")render();});
+cv.addEventListener("wheel",ev=>{if(!kg3d())return;ev.preventDefault();
+  const C=cam();C.zoom=Math.max(0.45,Math.min(2.4,C.zoom*(ev.deltaY>0?0.92:1.08)));render();},{passive:false});
+cv.addEventListener("pointerup",()=>{dragging=false;});
+cv.addEventListener("pointerleave",()=>{S.cursor=null;render();});
+
+// một chỗ duy nhất quyết định thẻ nào hiện, hàng nút nào hiện, thanh trượt nào dựng — dùng chung cho đổi tab và đổi robot
+function applyMode(){const ik=S.mode==="ik";
+  S.playing=false;S.el.tr.playing=false;S.st.tr.playing=false;document.getElementById("trajPlay").textContent="▶ Chạy";
+  S.anim=null;jacClear();setStepPlay(false);
+  if(ik)R().stepZero();
+  document.getElementById("stepCard").hidden=!ik;
+  document.getElementById("stepTitle").textContent=R().tenIK+" · từ bảng thông số D–H";
+  setKin(S.mode==="fk"?"fk":S.mode==="jac"?"jac":"ik");
+  Object.values(ROBOTS).map(r=>r.ctrlIK).forEach(id=>{document.getElementById(id).style.display=(ik&&R().ctrlIK===id)?"flex":"none";});
+  document.getElementById("jacctrl").style.display=S.mode==="jac"?"flex":"none";
+  document.getElementById("trajctrl").style.display=S.mode==="traj"?"flex":"none";
+  if(S.mode==="traj"){R().trajEnter();markShape(R().shape());}
+  setHint();buildSliders();
+  if(ik)R().stepEnter();
+  else render();}
+document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{
+  if(t.disabled)return;
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));t.classList.add("active");
+  S.mode=t.dataset.mode;applyMode();}));
+const LEG={planar:[["#1668A6","Khâu 1"],["#3EA6DE","Khâu 2"],["#E9873A","Khâu 3 / vết bút"],["#B9C6D3","Vùng làm việc"]],
+  elbow:[["#1668A6","a₂ (cánh tay trên)"],["#3EA6DE","a₃ (cẳng tay)"],["#E9873A","a₄ (khâu cổ tay)"],
+    ["#1E7A54","Vết bàn tay"],["#B9C6D3","Tầm với trên sàn"]],
+  stanford:[["#1668A6","d₂ (vai lệch)"],["#3EA6DE","d₃ (tay trượt)"],["#E9873A","d₆ (cổ tay)"],
+    ["#1E7A54","Vết bàn tay"],["#B9C6D3","Tầm với trên sàn"]]};
+function markRobot(){const el=kg3d();
+  document.getElementById("legend").innerHTML=LEG[R().legend]
+    .map(([c,t])=>`<span><i style="background:${c}"></i>${t}</span>`).join("");
+  document.getElementById("btn2r").classList.toggle("on",S.robot==="planar"&&S.dof===2);
+  document.getElementById("btn3r").classList.toggle("on",S.robot==="planar"&&S.dof===3);
+  document.getElementById("btnElbow").classList.toggle("on",S.robot==="elbow");
+  document.getElementById("btnStanford").classList.toggle("on",S.robot==="stanford");
+  document.querySelectorAll("[data-planaronly]").forEach(b=>b.style.display=el?"none":"");}
+function setDof(n){const oldId=(S.robot==="planar"&&S.mode==="ik")?stepIds()[S.step]:null;
+  S.robot="planar";S.dof=n;markRobot();
+  if(oldId){const ids=stepIds();let j=ids.indexOf(oldId);if(j<0)j=ids.indexOf(oldId==="wrist"?"r":"verify");S.step=j;}   // giữ bước tương ứng khi đổi 2R ↔ 3R
+  applyMode();}
+function setElbowRobot(){S.robot="elbow";markRobot();jacClear();applyMode();}
+document.getElementById("btn2r").onclick=()=>setDof(2);
+document.getElementById("btn3r").onclick=()=>setDof(3);
+document.getElementById("btnElbow").onclick=()=>setElbowRobot();
+function setStanfordRobot(){S.robot="stanford";markRobot();jacClear();applyMode();}
+document.getElementById("btnStanford").onclick=()=>setStanfordRobot();
+// nhánh nghiệm của ELBOW: ba dấu ± trong slide
+function brLabels(){const b=S.el.br;
+  document.getElementById("brArm").textContent="Vai: "+(b.arm>0?"trái":"phải");
+  document.getElementById("brElb").textContent="Khuỷu: "+(b.elb>0?"lên":"xuống");
+  document.getElementById("brWr").textContent="Cổ tay: "+(b.wr>0?"thuận":"lật");}
+[["brArm","arm"],["brElb","elb"],["brWr","wr"]].forEach(([id,k])=>
+  document.getElementById(id).onclick=()=>{S.el.br[k]*=-1;brLabels();if(S.mode==="ik")elStepGo(S.el.step,true);else render();});
+document.getElementById("viewReset").onclick=()=>{S.el.yaw=38*D2R;S.el.pitch=22*D2R;S.el.zoom=1;render();};
+document.getElementById("jacOne").onclick=()=>{jacStep();syncSliders();render();};
+document.getElementById("jacRst").onclick=()=>jacReset();
+document.getElementById("jacPlay").onclick=()=>{S.jac.play=!S.jac.play;
+  document.getElementById("jacPlay").textContent=S.jac.play?"⏸ Dừng":"▶ Lặp tới hội tụ";jacRun();};
+document.getElementById("showFrames").onchange=e=>{S.showFrames=e.target.checked;render();};
+document.getElementById("showArcs").onchange=e=>{S.showArcs=e.target.checked;render();};
+function setElbowLabel(){document.getElementById("elbowBtn").textContent="Cấu hình: "+(S.elbow>0?"elbow-up":"elbow-down");}
+document.getElementById("elbowBtn").onclick=()=>{S.elbow*=-1;setElbowLabel();
+  if(S.mode==="ik")applyIKStep(true);};
+
+// ---------- trajectory (stroke-based, with pen trail) ----------
+const LET={
+  T:[[[0,1],[1,1]],[[0.5,1],[0.5,0]]],
+  D:[[[0,0],[0,1],[0.55,1],[0.85,0.7],[0.85,0.3],[0.55,0],[0,0]]],
+  M:[[[0,0],[0,1],[0.5,0.45],[1,1],[1,0]]],
+  U:[[[0,1],[0,0.28],[0.14,0.06],[0.5,0],[0.86,0.06],[1,0.28],[1,1]]],
+  A:[[[0,0],[0.5,1],[1,0]],[[0.22,0.44],[0.78,0.44]]],
+  R:[[[0,0],[0,1],[0.62,1],[0.86,0.86],[0.86,0.64],[0.62,0.5],[0,0.5]],[[0.42,0.5],[0.9,0]]]
+};
+function circleStroke(cx,cy,r,n){const s=[];for(let i=0;i<=n;i++){const a=2*Math.PI*i/n;s.push({x:cx+r*Math.cos(a),y:cy+r*Math.sin(a)});}return s;}
+function starStroke(cx,cy,R,r,n){const s=[];for(let i=0;i<=2*n;i++){const rr=i%2?r:R,a=Math.PI/2+Math.PI*i/n;s.push({x:cx+rr*Math.cos(a),y:cy+rr*Math.sin(a)});}return s;}
+function wordStrokes(word,startX,baseY,cw,ch,gap){const out=[];let x=startX;
+  for(const ch0 of word){const def=LET[ch0]||[];for(const st of def){out.push(st.map(p=>({x:x+p[0]*cw,y:baseY+p[1]*ch})));}x+=cw+gap;}return out;}
+function buildShape(name){
+  if(name==="line")return [[{x:0.6,y:1.65},{x:1.95,y:0.5}]];
+  if(name==="circle")return [circleStroke(1.2,0.95,0.62,44)];
+  if(name==="star")return [starStroke(1.15,0.98,0.62,0.26,5)];
+  if(name==="word")return wordStrokes("ARM",0.42,0.55,0.4,0.6,0.14);
+  return null;}
+function buildSamples(strokes,perUnit){const out=[];
+  for(let s=0;s<strokes.length;s++){const st=strokes[s];
+    if(s>0){const a=strokes[s-1][strokes[s-1].length-1],b=st[0],n=10;
+      for(let i=1;i<=n;i++)out.push({x:a.x+(b.x-a.x)*i/n,y:a.y+(b.y-a.y)*i/n,pen:false});}
+    for(let i=0;i<st.length-1;i++){const a=st[i],b=st[i+1],d=Math.hypot(b.x-a.x,b.y-a.y),n=Math.max(2,Math.round(d*perUnit));
+      for(let k=0;k<=n;k++)out.push({x:a.x+(b.x-a.x)*k/n,y:a.y+(b.y-a.y)*k/n,pen:true});}}
+  return out;}
+function markShape(name){document.querySelectorAll("[data-shape]").forEach(b=>b.classList.toggle("sel",b.dataset.shape===name));}
+function setShape(name){R().setShape(name);}
+function setShapePlanar(name){
+  S.shape=name;S.strokes=buildShape(name);S.samples=buildSamples(S.strokes,34);
+  S.sIdx=0;S.trail=[];S.playing=false;document.getElementById("trajPlay").textContent="▶ Chạy";
+  markShape(name);render();}
+document.querySelectorAll("[data-shape]").forEach(b=>b.addEventListener("click",()=>setShape(b.dataset.shape)));
+document.getElementById("trajClear").onclick=()=>R().trajClear();
+function trajClearPlanar(){S.trail=[];S.sIdx=0;render();}
+document.getElementById("trajPlay").onclick=()=>R().trajToggle();
+function trajTogglePlanar(){
+  if(!S.samples.length)setShape("circle");
+  S.playing=!S.playing;document.getElementById("trajPlay").textContent=S.playing?"⏸ Dừng":"▶ Chạy";
+  if(S.playing){if(S.sIdx>=S.samples.length){S.sIdx=0;S.trail=[];}animate();}};
+function animate(){if(!S.playing)return;
+  if(S.sIdx>=S.samples.length){S.playing=false;document.getElementById("trajPlay").textContent="▶ Chạy";render();return;}
+  const q=S.samples[S.sIdx++];S.target.x=q.x;S.target.y=q.y;S.cursor=null;
+  const sol=solveIK(q.x,q.y);
+  if(sol){for(let i=0;i<S.dof;i++)S.th[i]=sol[i];S.reachable=true;S.trail.push({x:q.x,y:q.y,pen:q.pen});}
+  else{S.reachable=false;S.trail.push({x:q.x,y:q.y,pen:false});}
+  syncThetaSliders();render();requestAnimationFrame(animate);}
+
+function setHint(){const h={
+  fk:"Động học thuận: bảng thông số D–H ▶ ma trận Aᵢ ▶ T đổi theo ▶ θ → (x, y, φ) duy nhất.",
+  ik:"Động học nghịch, bắt đầu từ bảng thông số D–H. Bấm Tiếp ▶ (hoặc phím →) để đi tiếp, ▶ (x, y) → θ",
+  traj:"Chọn hình rồi bấm Chạy: robot 'viết chữ' như khi hàn/vẽ.",
+  jac:"Động học nghịch bằng lặp số: mỗi vòng đi một bước Δq = α·J⁻¹·e về phía đích. Đổi α để thấy hội tụ nhanh/chậm; đưa tay về gần duỗi thẳng để thấy det J → 0."};
+  const hEl={fk:"Robot ELBOW 6 bậc theo bảng thông số D–H Chương IV. Kéo θ₁…θ₆; kéo chuột trên hình để xoay góc nhìn, lăn chuột để phóng to.",
+  ik:"Giải động học nghịch ELBOW từng bước đúng trình tự slide (4-34 → 4-37). Đổi tư thế đích bằng thanh trượt, đổi nhánh bằng ba nút Vai / Khuỷu / Cổ tay.",
+  traj:"Quỹ đạo Đề-các: bàn tay bám đường thẳng hoặc đường tròn trong mặt phẳng đứng, hướng tiếp cận giữ nguyên suốt hành trình. Vết đứt đoạn là chỗ ngoài tầm với.",
+  jac:"Jacobian hình học 6×6 và vòng lặp số cho robot không gian; det J ≈ 0 thì tự chuyển sang giả nghịch đảo tắt dần (DLS)."};
+  const hSt={fk:"Robot Stanford theo bảng thông số D–H trang 25: khớp 3 là khớp tịnh tiến — kéo d₃ để cánh tay thò ra, thụt vào. Kéo chuột trên hình để xoay góc nhìn.",
+  ik:"Giải động học nghịch Stanford từng bước đúng trình tự slide (4-24 → 4-36). Đổi tư thế đích bằng thanh trượt, đổi nhánh bằng hai nút Vai / Cổ tay.",
+  traj:"Quỹ đạo Đề-các cho robot Stanford: bàn tay bám đường trong mặt phẳng đứng, hướng tiếp cận giữ nguyên. Vết đứt đoạn là chỗ vô nghiệm hoặc d₃ vượt giới hạn.",
+  jac:"Jacobian 6×6 của robot Stanford: cột của khớp tịnh tiến là [z₂ ; 0] — khớp này chỉ đẩy bàn tay đi, không làm nó quay."};
+  const hr={elbow:hEl,stanford:hSt}[S.robot];
+  document.getElementById("modeHint").textContent=(hr&&hr[S.mode])||h[S.mode];}
+
+
+// ================= ROBOT ELBOW 6 BẬC (3D) — Chương IV, mục 4.5 =================
+// Bảng thông số D–H của slide (trang 6): dᵢ = 0, aᵢ = [0, a₂, a₃, a₄, 0, 0], αᵢ = [90, 0, 0, −90, 90, 0]°.
+// Ba khâu a₂, a₃, a₄ nằm trong mặt phẳng đứng do θ₁ xoay ⇒ lại đúng bài toán 3R phẳng đã học.
+const EL_AL=[90,0,0,-90,90,0].map(v=>v*D2R);
+const EL_COL=["#0E3D63","#1668A6","#3EA6DE","#E9873A","#7B4FB8","#1E7A54"];
+const ID4=()=>[[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];
+const elAl=i=>[0,S.el.a[0],S.el.a[1],S.el.a[2],0,0][i];
+const elA=(i,q)=>dhMat(q[i],0,elAl(i),EL_AL[i]);
+function elFK(q){const A=[],T=[ID4()];for(let i=0;i<6;i++){A.push(elA(i,q));T.push(mul(T[i],A[i]));}return{A,T};}
+const org=T=>[T[0][3],T[1][3],T[2][3]];
+const xax=T=>[T[0][0],T[1][0],T[2][0]];
+const yax=T=>[T[0][1],T[1][1],T[2][1]];
+const zax=T=>[T[0][2],T[1][2],T[2][2]];
+const v3={sub:(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]], add:(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]],
+  scl:(a,k)=>[a[0]*k,a[1]*k,a[2]*k], dot:(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],
+  crs:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],
+  len:a=>Math.hypot(a[0],a[1],a[2]), unit(a){const L=this.len(a)||1;return this.scl(a,1/L);}};
+const reachEl=()=>S.el.a[0]+S.el.a[1]+S.el.a[2];
+
+// ---------- khung nhìn 3D: chiếu trực giao, xoay bằng cách kéo chuột ----------
+const EL_VIEW={ox:330,oy:412,sc:142};
+function pr3(p){const C=cam(),cy=Math.cos(C.yaw),sy=Math.sin(C.yaw),cp=Math.cos(C.pitch),sp=Math.sin(C.pitch);
+  const rx=-sy*p[0]+cy*p[1], fw=cy*p[0]+sy*p[1], V=R().view||EL_VIEW, sc=V.sc*C.zoom;   // mỗi robot tự đặt gốc khung nhìn
+  return {x:V.ox+rx*sc, y:V.oy-(p[2]*cp-fw*sp)*sc, d:fw*cp+p[2]*sp};}
+
+// ---------- tư thế đích: vị trí + vectơ tiếp cận a + góc xoay quanh a ----------
+const elTarget=()=>tgtPose(S.el.tgt);
+function tgtPose(t){const ce=Math.cos(t.el),se=Math.sin(t.el);
+  const ap=[ce*Math.cos(t.az),ce*Math.sin(t.az),se];
+  let u=v3.crs([0,0,1],ap); if(v3.len(u)<1e-6)u=[1,0,0]; u=v3.unit(u);
+  const w=v3.crs(ap,u),cr=Math.cos(t.roll),sr=Math.sin(t.roll);
+  const n=v3.add(v3.scl(u,cr),v3.scl(w,sr));
+  return {p:[t.x,t.y,t.z], n, o:v3.crs(ap,n), a:ap};}
+
+// ---------- động học nghịch dạng đóng, đúng trình tự slide (4-34 → 4-37) ----------
+function elIK(br){const {p,n,o,a}=elTarget(),a2=S.el.a[0],a3=S.el.a[1],a4=S.el.a[2];
+  const d={p,n,o,a,a2,a3,a4,br};
+  d.th1=wrapPi(Math.atan2(p[1],p[0])+(br.arm>0?0:Math.PI));
+  d.c1=Math.cos(d.th1); d.s1=Math.sin(d.th1);
+  d.axy=d.c1*a[0]+d.s1*a[1];                                   // C₁aₓ + S₁a_y
+  d.th234=wrapPi(Math.atan2(a[2],d.axy)+(br.wr>0?0:Math.PI));
+  d.c234=Math.cos(d.th234); d.s234=Math.sin(d.th234);
+  d.px=d.c1*p[0]+d.s1*p[1]-d.c234*a4;                          // p′ₓ (4-37c)
+  d.py=p[2]-d.s234*a4;                                         // p′_y (4-37d)
+  d.r2=d.px*d.px+d.py*d.py;
+  d.c3r=(d.r2-a2*a2-a3*a3)/(2*a2*a3);
+  d.ok=Math.abs(d.c3r)<=1+1e-9;
+  d.c3=Math.max(-1,Math.min(1,d.c3r));
+  if(!d.ok)return d;
+  d.s3=br.elb*Math.sqrt(1-d.c3*d.c3); d.th3=Math.atan2(d.s3,d.c3);
+  d.k1=d.c3*a3+a2; d.k2=d.s3*a3;                               // hệ số của hệ tuyến tính theo C₂, S₂
+  d.th2=Math.atan2(d.k1*d.py-d.k2*d.px, d.k1*d.px+d.k2*d.py);
+  d.th4=wrapPi(d.th234-d.th2-d.th3);
+  d.th5=Math.atan2(d.c234*d.axy+d.s234*a[2], d.s1*a[0]-d.c1*a[1]);
+  d.c5=Math.cos(d.th5); d.s5=Math.sin(d.th5);
+  d.oxy=d.c1*o[0]+d.s1*o[1];                                   // C₁Oₓ + S₁O_y
+  d.s6=-d.c5*(d.c234*d.oxy+d.s234*o[2])+d.s5*(d.s1*o[0]-d.c1*o[1]);   // xem ghi chú về dấu ở thẻ bước θ₆
+  d.c6=-d.s234*d.oxy+d.c234*o[2];
+  d.th6=Math.atan2(d.s6,d.c6);
+  d.q=[d.th1,d.th2,d.th3,d.th4,d.th5,d.th6];
+  const Tv=elFK(d.q).T[6];                                     // kiểm tra ngược bằng động học thuận
+  d.Tv=Tv; d.pv=org(Tv); d.err=v3.len(v3.sub(d.pv,p));
+  d.errR=Math.max(v3.len(v3.sub(zax(Tv),a)),v3.len(v3.sub(yax(Tv),o)));
+  return d;}
+
+// ---------- các bước dạy động học nghịch ELBOW ----------
+const EL_STEPM={
+  dh:   {s:"Bảng thông số D–H", t:"Bảng thông số D–H 6 khâu của robot ELBOW",            ph:0},
+  pose: {s:"Đích",     t:"Tư thế đích T₆ = [n o a p] — 6 ràng buộc",    ph:0},
+  th1:  {s:"θ₁",       t:"θ₁ — xoay thân, từ hình chiếu đích lên sàn",  ph:1},
+  th234:{s:"θ₂₃₄",     t:"θ₂₃₄ — hướng tiếp cận trong mặt phẳng tay",   ph:1},
+  wrist:{s:"p′",       t:"Lùi a₄ theo hướng tiếp cận → còn bài toán 2R",ph:1},
+  th3:  {s:"θ₃",       t:"θ₃ — định lý cos, hai nhánh khuỷu",           ph:1},
+  th2:  {s:"θ₂",       t:"θ₂ — giải hệ tuyến tính bằng Cramer",         ph:1},
+  th4:  {s:"θ₄",       t:"θ₄ = θ₂₃₄ − θ₂ − θ₃",                         ph:1},
+  th5:  {s:"θ₅",       t:"θ₅ — từ vectơ tiếp cận a",                    ph:1},
+  th6:  {s:"θ₆",       t:"θ₆ — từ vectơ hướng o",                       ph:1},
+  check:{s:"Kiểm tra", t:"Thế 6 góc vào bảng thông số D–H → T₆ bằng số",         ph:2},
+  brs:  {s:"8 nghiệm", t:"Ba dấu ± ⇒ tám bộ góc cho cùng một tư thế",   ph:2}};
+const EL_PHASES=["① Mô hình D–H → T₆","② Giải từng ẩn theo slide","③ Kiểm tra"];
+const elStepIds=()=>["dh","pose","th1","th234","wrist","th3","th2","th4","th5","th6","check","brs"];
+const elStepLimit=d=>d.ok?elStepIds().length-1:elStepIds().indexOf("th3");
+// khớp nào đã giải thì quay tới giá trị của nó, còn lại giữ 0
+function elStepPose(id,d){if(!d.ok)return [0,0,0,0,0,0];
+  const k={dh:0,pose:0,th1:1,th234:1,wrist:1,th3:1,th2:2,th4:3,th5:4,th6:5,check:6,brs:6}[id],q=[0,0,0,0,0,0];
+  if(k>=1)q[0]=d.th1;
+  if(k>=2){q[1]=d.th2;q[2]=d.th3;}
+  if(k>=3)q[3]=d.th4;
+  if(k>=4)q[4]=d.th5;
+  if(k>=5)q[5]=d.th6;
+  return q;}
+
+// ---------- vẽ 3D: gom mọi nét vào một mảng rồi sắp theo độ sâu ----------
+function seg3(A,B,col,w,dash){const a=pr3(A),b=pr3(B);
+  return {d:(a.d+b.d)/2,f(){ctx.strokeStyle=col;ctx.lineWidth=w;ctx.lineCap="round";
+    if(dash)ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.setLineDash([]);}};}
+function dot3(P,r,col){const p=pr3(P);
+  return {d:p.d,f(){ctx.fillStyle=col;ctx.beginPath();ctx.arc(p.x,p.y,r,0,7);ctx.fill();}};}
+function txt3(P,t,col,dx,dy,font){const p=pr3(P);
+  return {d:p.d+0.01,f(){ctx.fillStyle=col;ctx.font=font||"11px 'Courier New'";ctx.fillText(t,p.x+(dx||0),p.y+(dy||0));}};}
+function arrow3(A,B,col,label){const a=pr3(A),b=pr3(B);
+  return {d:Math.max(a.d,b.d),f(){arrow(a.x,a.y,b.x,b.y,col,label);}};}
+function lab3(A,B,t,col){const a=pr3(A),b=pr3(B),mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+  let nx=a.y-b.y,ny=b.x-a.x;const L=Math.hypot(nx,ny)||1;nx/=L;ny/=L;
+  if(L<38)return {d:-1e9,f(){}};
+  return {d:Math.max(a.d,b.d)+0.02,f(){ctx.fillStyle=col;ctx.font="11px 'Courier New'";ctx.textAlign="center";
+    ctx.fillText(t,mx+15*nx,my+15*ny+3);ctx.textAlign="left";}};}
+function arc3(O,ex,ey,a0,a1,r,col,lab,out){const n=Math.max(6,Math.ceil(Math.abs(a1-a0)*14));
+  const P=t=>v3.add(O,v3.add(v3.scl(ex,r*Math.cos(t)),v3.scl(ey,r*Math.sin(t))));
+  for(let k=0;k<n;k++)out.push(seg3(P(a0+(a1-a0)*k/n),P(a0+(a1-a0)*(k+1)/n),col,2));
+  if(lab)out.push(txt3(P((a0+a1)/2),lab,col,4,-3,"bold 11px 'Courier New'"));}
+function triad3(T,out,lab,len){const O=org(T),L=len||0.22;
+  out.push(arrow3(O,v3.add(O,v3.scl(xax(T),L)),"rgba(22,104,166,.9)",lab?"x"+lab:null));
+  out.push(arrow3(O,v3.add(O,v3.scl(yax(T),L)),"rgba(233,135,58,.9)",lab?"y"+lab:null));
+  out.push(arrow3(O,v3.add(O,v3.scl(zax(T),L)),"rgba(30,122,84,.9)",lab?"z"+lab:null));}
+function floor3(out,rr=reachEl(),z0=0){const R=Math.ceil(rr*2)/2;   // sàn ở độ cao z0, vành tầm với bán kính rr
+  for(let g=-R;g<=R+1e-9;g+=0.5){out.push(seg3([g,-R,z0],[g,R,z0],"rgba(22,104,166,0.07)",1));
+    out.push(seg3([-R,g,z0],[R,g,z0],"rgba(22,104,166,0.07)",1));}
+  const n=64;
+  for(let k=0;k<n;k++){const a0=k/n*2*Math.PI,a1=(k+1)/n*2*Math.PI;
+    out.push(seg3([rr*Math.cos(a0),rr*Math.sin(a0),z0],[rr*Math.cos(a1),rr*Math.sin(a1),z0],"rgba(94,118,144,0.38)",1.2,[5,5]));}}
+function base3(out){const n=28,rb=0.26;                        // bệ máy: không có trong bảng thông số D–H, chỉ để ra dáng robot
+  for(let k=0;k<n;k++){const a0=k/n*2*Math.PI,a1=(k+1)/n*2*Math.PI;
+    out.push(seg3([rb*Math.cos(a0),rb*Math.sin(a0),0],[rb*Math.cos(a1),rb*Math.sin(a1),0],"#9FBBD3",2));
+    out.push(seg3([rb*Math.cos(a0),rb*Math.sin(a0),-0.22],[rb*Math.cos(a1),rb*Math.sin(a1),-0.22],"#C4D4E2",1.5));}
+  for(let k=0;k<4;k++){const a0=k/4*2*Math.PI;
+    out.push(seg3([rb*Math.cos(a0),rb*Math.sin(a0),0],[rb*Math.cos(a0),rb*Math.sin(a0),-0.22],"#C4D4E2",1.5));}}
+
+function renderEl(){clear();
+  const d=S.mode==="fk"?null:elIK(S.el.br), out=[], {T}=elFK(S.el.q);
+  floor3(out);base3(out);
+  out.push(arrow3([0,0,0],[0.62,0,0],COL.blue,"x₀"));
+  out.push(arrow3([0,0,0],[0,0.62,0],COL.amber,"y₀"));
+  out.push(arrow3([0,0,0],[0,0,0.62],"#1E7A54","z₀"));
+  const P=[org(T[0]),org(T[1]),org(T[2]),org(T[3]),org(T[4])];
+  [[1,2,S.el.a[0],"a₂"],[2,3,S.el.a[1],"a₃"],[3,4,S.el.a[2],"a₄"]].forEach(([i,j,L,lab],k)=>{
+    if(L<1e-6)return;
+    out.push(seg3(P[i],P[j],EL_COL[k+1],9));
+    out.push(lab3(P[i],P[j],lab+" = "+fN(L,2),EL_COL[k+1]));});
+  P.forEach((p,i)=>{if(i<4)out.push(dot3(p,i?6:7,i?"#12558A":COL.deep));});
+  const tcp=org(T[6]),ptcp=pr3(tcp);
+  out.push({d:ptcp.d,f(){ctx.fillStyle=COL.deep;ctx.fillRect(ptcp.x-6,ptcp.y-6,12,12);}});
+  out.push(txt3([0,0,0],"O₀",COL.muted,-24,16));
+  if(S.showArcs)for(let i=0;i<6;i++){const q=S.el.q[i];if(Math.abs(q)<2e-2)continue;
+    const Tp=T[i],r=[0.30,0.28,0.26,0.22,0.20,0.18][i];
+    arc3(org(Tp),xax(Tp),yax(Tp),0,q,r,EL_COL[i],"θ"+(i+1),out);}
+  if(S.showFrames)for(let i=1;i<=6;i++)triad3(T[i],out,"₀₁₂₃₄₅₆"[i]);
+  else triad3(T[6],out,null,0.3);
+  if(S.mode!=="fk"){const tg=elTarget(),col=(d&&d.ok)?COL.sky:"#B23A2A";
+    out.push(arrow3(tg.p,v3.add(tg.p,v3.scl(tg.a,0.42)),col,"a"));
+    [[0.13,0,0],[0,0.13,0],[0,0,0.13]].forEach(v=>out.push(seg3(v3.sub(tg.p,v),v3.add(tg.p,v),col,2)));
+    out.push(txt3(tg.p,"đích",col,11,-11));
+    if(d&&d.ok){out.push(seg3([0,0,0],[d.p[0],d.p[1],0],"#7B4FB8",1.4,[4,4]));   // hình chiếu lên sàn cho θ₁
+      out.push(seg3([d.p[0],d.p[1],0],d.p,"#7B4FB8",1.2,[3,3]));}}
+  if(S.mode==="jac")jacTrail3(out);
+  if(S.mode==="traj")elTraj3(out);
+  out.sort((u,v)=>u.d-v.d).forEach(o=>o.f());
+  elHUD(d);updatePanels();}
+
+function elHUD(d){hud3(org(elFK(S.el.q).T[6]),d&&(d.ok?"sai số vị trí = "+fN(d.err,4):"ngoài tầm với: |cos θ₃| > 1"));}
+function hud3(p,msg){
+  const lines=["bàn tay  x="+fN(p[0],2)+" y="+fN(p[1],2)+" z="+fN(p[2],2),
+    "góc nhìn "+fD(cam().yaw,0)+" / "+fD(cam().pitch,0)+"  · kéo chuột để xoay"];
+  if(msg)lines.push(msg);
+  ctx.font="12px 'Courier New'";let wm=0;lines.forEach(l=>wm=Math.max(wm,ctx.measureText(l).width));
+  const bw=wm+18,bh=lines.length*17+12;
+  ctx.fillStyle="rgba(255,255,255,.88)";ctx.strokeStyle=COL.line;ctx.lineWidth=1;
+  if(ctx.roundRect){ctx.beginPath();ctx.roundRect(10,10,bw,bh,8);ctx.fill();ctx.stroke();}
+  else{ctx.fillRect(10,10,bw,bh);ctx.strokeRect(10,10,bw,bh);}
+  ctx.fillStyle=COL.deep;lines.forEach((l,i)=>ctx.fillText(l,19,29+i*17));}
+
+// ---------- bảng biểu & công thức cho ELBOW ----------
+const EL_ALT=["90°","0°","0°","−90°","90°","0°"];
+const SUBN="₁₂₃₄₅₆";
+function elDhBody(){return S.el.q.map((q,i)=>
+  `<tr><td>${i+1}</td><td>${fN(elAl(i),2)}</td><td>${EL_ALT[i]}</td><td>0</td><td class="th">${fN(q*R2D,1)}</td></tr>`).join("");}
+// công thức đóng trang 10 của slide, tính bằng số để đối chiếu với tích ma trận
+function elClosed(q){const c1=Math.cos(q[0]),s1=Math.sin(q[0]);
+  const t234=q[1]+q[2]+q[3],c234=Math.cos(t234),s234=Math.sin(t234);
+  const t23=q[1]+q[2],c23=Math.cos(t23),s23=Math.sin(t23),c2=Math.cos(q[1]),s2=Math.sin(q[1]);
+  const c5=Math.cos(q[4]),s5=Math.sin(q[4]),c6=Math.cos(q[5]),s6=Math.sin(q[5]);
+  const a2=S.el.a[0],a3=S.el.a[1],a4=S.el.a[2],rad=c234*a4+c23*a3+c2*a2;
+  return {n:[c1*(c234*c5*c6-s234*s6)-s1*s5*c6, s1*(c234*c5*c6-s234*s6)+c1*s5*c6, s234*c5*c6+c234*s6],
+    o:[-c1*(c234*c5*s6+s234*c6)+s1*s5*s6, -s1*(c234*c5*s6+s234*c6)-c1*s5*s6, -s234*c5*s6+c234*c6],
+    a:[c1*c234*s5+s1*c5, s1*c234*s5-c1*c5, s234*s5],
+    p:[c1*rad, s1*rad, s234*a4+s23*a3+s2*a2]};}
+
+function elFkHTML(){const q=S.el.q,C=elClosed(q),p=org(elFK(q).T[6]);
+  const dif=Math.max(...[0,1,2].map(i=>Math.abs(C.p[i]-p[i])));
+  let h=`<div class="task">Bài toán: biết 6 góc khớp ${F("$θ_1 … $θ_6")} → tìm tư thế bàn tay ${F("$T_6 = [n o a p]")}. Luôn có <b>đúng một</b> kết quả.</div>`;
+  h+=`<div class="method">Cách 1 — Nhân 6 ma trận khâu <small>· giống robot phẳng, chỉ thêm cột α</small></div><div class="fxbox fx">`+
+    LN(M("$T_6 = $A_1·$A_2·$A_3·$A_4·$A_5·$A_6"))+
+    TX("Mỗi "+F("$A_i")+" lấy từ một hàng của bảng thông số D–H theo đúng công thức đã dùng cho robot phẳng. Khác biệt duy nhất của robot không gian: cột α không còn bằng 0, nên khối quay 3×3 không còn là phép quay quanh z.")+
+    TX(F("$α_1 = 90°")+" là hàng dựng cánh tay ra khỏi mặt sàn; "+F("$α_4 = −90°")+" và "+F("$α_5 = 90°")+" là hai hàng tạo nên cổ tay cầu.")+`</div>`;
+  h+=`<div class="method">Cách 2 — Công thức đóng của giáo trình <small>· trang 10, mục 4.5</small></div><div class="fxbox fx">`+
+    TX("Nhân tay 6 ma trận rồi rút gọn bằng "+F("$c_234 = cos($θ_2+$θ_3+$θ_4)")+" cho ra ngay các cột của "+F("$T_6")+":")+
+    LN(M("$p_x = $c_1($c_234$a_4 + $c_23$a_3 + $c_2$a_2)")+" = <b>"+fN(C.p[0])+"</b>")+
+    LN(M("$p_y = $s_1($c_234$a_4 + $c_23$a_3 + $c_2$a_2)")+" = <b>"+fN(C.p[1])+"</b>")+
+    LN(M("$p_z = $s_234$a_4 + $s_23$a_3 + $s_2$a_2")+" = <b>"+fN(C.p[2])+"</b>")+
+    TX("Ba dòng này nói đúng một điều: <b>θ₁ chỉ xoay mặt phẳng cánh tay</b>; trong mặt phẳng đó a₂, a₃, a₄ là một <b>robot 3R phẳng</b> — chính bài toán đã học ở tab trước.")+
+    LN(M("$a_x = $c_1$c_234$s_5 + $s_1$c_5")+" = "+fN(C.a[0])+",&ensp;"+M("$a_y = $s_1$c_234$s_5 − $c_1$c_5")+" = "+fN(C.a[1])+",&ensp;"+M("$a_z = $s_234$s_5")+" = "+fN(C.a[2]))+
+    `</div>`;
+  h+=`<div class="fxbox fx" style="margin-top:8px">`+TX("Đối chiếu hai cách với bộ góc hiện tại:")+
+    LN("tích ma trận:&ensp;"+M("$p")+" = ("+fN(p[0])+", "+fN(p[1])+", "+fN(p[2])+")")+
+    LN("công thức đóng: "+M("$p")+" = ("+fN(C.p[0])+", "+fN(C.p[1])+", "+fN(C.p[2])+")&emsp;"+
+      (dif<1e-9?'<span class="good">✓ trùng nhau</span>':'<span class="fail">✗ lệch '+fN(dif,6)+'</span>'))+`</div>`;
+  return h;}
+
+function elIkExplainHTML(){const chips=[["Cho T₆ = [n o a p]",""],["θ₁ từ hình chiếu trên sàn",""],["θ₂₃₄ từ vectơ tiếp cận a",""],
+  ["p′ = p − a₄·tiếp cận",""],["cos θ₃ (định lý cos)",""],["|cos θ₃| ≤ 1 ? — sai ⇒ vô nghiệm","q"],
+  ["θ₃ = ±, rồi θ₂ (Cramer)",""],["θ₄ = θ₂₃₄ − θ₂ − θ₃",""],["θ₅, θ₆ từ o và a",""],["Kiểm tra bằng ĐH thuận",""]];
+  return `<div class="method first">Vì sao robot 6 bậc vẫn giải tay được?</div><div class="fxbox">`+
+    TX("Ba khớp cuối của ELBOW <b>cắt nhau tại một điểm</b> (cổ tay cầu). Nhờ đó bài toán tách đôi: <b>vị trí</b> do θ₁, θ₂, θ₃, θ₄ lo, <b>hướng</b> do θ₅, θ₆ bù nốt — không có tính chất này thì phải giải số.")+
+    TX("Bước tách thứ hai còn quen hơn: θ₁ chỉ <b>xoay mặt phẳng chứa cánh tay</b>. Đứng trong mặt phẳng đó nhìn vào, a₂–a₃–a₄ đúng là <b>robot 3R phẳng</b> đã giải ở tab trước, với θ₂₃₄ đóng vai trò góc hướng φ.")+`</div>`+
+    `<div class="method">Trình tự của giáo trình (4-34 → 4-37)</div><div class="fxbox">`+
+    TX("<b>① θ₁</b> — cân bằng phần tử hàng 3 cột 4 của "+F("$A_1⁻¹$T_6")+" cho "+F("$S_1$p_x + $C_1$p_y = 0")+" ⇒ "+F("$θ_1 = atan2($p_y, $p_x)")+" (và θ₁ + 180°: robot với tay ra sau).")+
+    TX("<b>② θ₂₃₄</b> — cân bằng hàng 3 cột 3 cho "+F("−$S_234($C_1$a_x + $S_1$a_y) + $C_234$a_z = 0")+" ⇒ hướng của khâu a₄ trong mặt phẳng cánh tay.")+
+    TX("<b>③ p′</b> — lùi một đoạn a₄ theo hướng đó: "+F("$p′_x = $C_1$p_x + $S_1$p_y − $C_234$a_4")+", "+F("$p′_y = $p_z − $S_234$a_4")+" ⇒ còn đúng bài 2R của a₂, a₃.")+
+    TX("<b>④ θ₃, θ₂</b> — định lý cos cho θ₃ (hai dấu), rồi hệ tuyến tính theo C₂, S₂ giải bằng định thức Cramer ⇒ θ₂ = atan2(Δs, Δc).")+
+    TX("<b>⑤ θ₄, θ₅, θ₆</b> — θ₄ lấy phần hướng còn thiếu; θ₅ từ vectơ tiếp cận a; θ₆ từ vectơ o sau khi đã biết θ₅.")+`</div>`+
+    `<div class="method">Vì sao có tám nghiệm?</div><div class="fxbox">`+
+    TX("Ba chỗ có dấu ±: <b>vai</b> (θ₁ hoặc θ₁ + 180°), <b>khuỷu</b> (S₃ = ±√(1 − C₃²)), <b>cổ tay lật</b> (θ₂₃₄ hoặc θ₂₃₄ + 180°) ⇒ 2×2×2 = <b>8 bộ góc</b> cho cùng một tư thế. Robot thật chọn bộ gần tư thế hiện tại nhất và nằm trong giới hạn khớp.")+
+    TX("Vô nghiệm khi "+F("|cos$θ_3| > 1")+": điểm cổ tay nằm ngoài vành [|a₂ − a₃|, a₂ + a₃] — vẫn là điều kiện của bài 2R phẳng.")+`</div>`+
+    `<div class="method">Quy trình tóm tắt</div><div class="flow">`+
+    chips.map(([t,c])=>`<span class="chip${c?" "+c:""}">${t}</span>`).join('<span class="arr">→</span>')+`</div>`;}
+
+function elIkHTML(){const d=elIK(S.el.br),a=d.a,o=d.o,p=d.p,sg=s=>s>0?"+1":"−1";
+  let h=`<div class="task">Bài toán: biết tư thế bàn tay ${F("$T_6 = [n o a p]")} → tìm ${F("$θ_1 … $θ_6")}. Có <b>8 nghiệm</b> (vai × khuỷu × cổ tay), hoặc <b>vô nghiệm</b> nếu điểm cổ tay ngoài tầm với.</div>`;
+  h+=`<div class="fxbox fx">`+TX("Tư thế đích hiện tại — đổi bằng thanh trượt bên trái:")+
+    LN(M("$p")+" = ("+fN(p[0])+", "+fN(p[1])+", "+fN(p[2])+")")+
+    LN(M("$a")+" = ("+fN(a[0])+", "+fN(a[1])+", "+fN(a[2])+")&emsp;"+M("$o")+" = ("+fN(o[0])+", "+fN(o[1])+", "+fN(o[2])+")")+
+    LN("nhánh: vai "+sg(d.br.arm)+" · khuỷu "+sg(d.br.elb)+" · cổ tay "+sg(d.br.wr))+`</div>`;
+  h+=`<div class="method">Bước 1 — θ₁ từ hình chiếu lên sàn</div><div class="fxbox fx">`+
+    LN(M("$θ_1 = atan2($p_y, $p_x)")+" = atan2("+fN(p[1])+", "+fN(p[0])+") = <b>"+fD(d.th1)+"</b>")+`</div>`;
+  h+=`<div class="method">Bước 2 — θ₂₃₄ từ vectơ tiếp cận</div><div class="fxbox fx">`+
+    LN(M("$C_1$a_x + $S_1$a_y")+" = "+fN(d.axy)+"&emsp;"+M("$a_z")+" = "+fN(a[2]))+
+    LN(M("$θ_234 = atan2($a_z, $C_1$a_x + $S_1$a_y)")+" = <b>"+fD(d.th234)+"</b>")+`</div>`;
+  h+=`<div class="method">Bước 3 — Lùi a₄: còn lại bài 2R</div><div class="fxbox fx">`+
+    LN(M("$p′_x = $C_1$p_x + $S_1$p_y − $C_234$a_4")+" = <b>"+fN(d.px)+"</b>")+
+    LN(M("$p′_y = $p_z − $S_234$a_4")+" = <b>"+fN(d.py)+"</b>")+`</div>`;
+  h+=`<div class="method">Bước 4 — θ₃ bằng định lý cos</div><div class="fxbox fx">`+
+    LN(M("cos$θ_3 = ($p′_x² + $p′_y² − $a_2² − $a_3²) / 2$a_2$a_3")+" = <b>"+fN(d.c3r)+"</b>")+
+    (d.ok?LN(M("$S_3 = ±√(1 − cos²$θ_3)")+" = "+fN(d.s3)+"&emsp;"+M("$θ_3 = atan2($S_3, $C_3)")+" = <b>"+fD(d.th3)+"</b>")
+      :TX('<span class="fail">|cos θ₃| > 1 ⇒ vô nghiệm</span> — điểm cổ tay p′ nằm ngoài vành [|a₂ − a₃|, a₂ + a₃].'))+`</div>`;
+  if(!d.ok)return h;
+  h+=`<div class="method">Bước 5 — θ₂ bằng định thức Cramer</div><div class="fxbox fx">`+
+    LN(M("$k_1 = $C_3$a_3 + $a_2")+" = "+fN(d.k1)+",&ensp;"+M("$k_2 = $S_3$a_3")+" = "+fN(d.k2))+
+    LN(M("$θ_2 = atan2($k_1$p′_y − $k_2$p′_x, $k_1$p′_x + $k_2$p′_y)")+" = <b>"+fD(d.th2)+"</b>")+`</div>`;
+  h+=`<div class="method">Bước 6 — θ₄, θ₅, θ₆</div><div class="fxbox fx">`+
+    LN(M("$θ_4 = $θ_234 − $θ_2 − $θ_3")+" = "+fD(d.th234)+" − "+fD(d.th2)+" − "+fD(d.th3)+" = <b>"+fD(d.th4)+"</b>")+
+    LN(M("$θ_5 = atan2($C_234($C_1$a_x+$S_1$a_y) + $S_234$a_z, $S_1$a_x − $C_1$a_y)")+" = <b>"+fD(d.th5)+"</b>")+
+    LN(M("$θ_6 = atan2($S_6, $C_6)")+" với "+M("$S_6")+" = "+fN(d.s6)+", "+M("$C_6")+" = "+fN(d.c6)+" ⇒ <b>"+fD(d.th6)+"</b>")+
+    TX("<b>Lưu ý:</b> dòng "+F("$S_6")+" in ở trang 20 của slide dùng "+F("− $S_5($S_1$O_x + $C_1$O_y)")+"; thay số rồi kiểm tra ngược bằng động học thuận thì không khớp. Bản dùng ở đây là "+
+      F("$S_6 = −$C_5[$C_234($C_1$O_x + $S_1$O_y) + $S_234$O_z] + $S_5($S_1$O_x − $C_1$O_y)")+" — đúng với công thức thuận trang 10 (ô kiểm tra bên dưới luôn cho sai số 0).")+`</div>`;
+  h+=`<div class="fxbox fx" style="margin-top:8px">`+TX("Kiểm tra: thế 6 góc vừa tìm vào bảng thông số D–H rồi nhân ra T₆")+
+    LN(M("$p")+" = ("+fN(d.pv[0])+", "+fN(d.pv[1])+", "+fN(d.pv[2])+")&emsp;"+
+      (d.err<1e-6&&d.errR<1e-6?'<span class="good">✓ trùng tư thế đích</span>':'<span class="fail">✗ lệch '+fN(Math.max(d.err,d.errR),6)+'</span>'))+`</div>`;
+  return h;}
+
+// ---------- thẻ từng bước của ELBOW ----------
+function elStepListHTML(ids,lim){let h="",ph=-1;
+  ids.forEach((id,i)=>{const m=EL_STEPM[id];
+    if(m.ph!==ph){h+=(ph>=0?"</div></div>":"")+`<div class="sgroup"><div class="sgt">${EL_PHASES[m.ph]}</div><div class="spills">`;ph=m.ph;}
+    const c=i===S.el.step?" cur":i<S.el.step?" done":"";
+    h+=`<button class="spill${c}" data-st="${i}"${i>lim?" disabled":""}><span class="k">${i+1}</span>${m.s}</button>`;});
+  return h+"</div></div>";}
+
+function elStepHTML(ids,d){const id=ids[S.el.step],m=EL_STEPM[id],p=d.p,a=d.a;
+  const box=c=>`<div class="fxbox fx">${c}</div>`,goal=t=>`<div class="task">${t}</div>`;
+  const fig=t=>`<div class="onfig"><b>Trên hình:</b> ${t}</div>`;
+  let h=`<div class="shead"><div class="sph">${EL_PHASES[m.ph]}</div><div class="stitle">Bước ${S.el.step+1}/${ids.length} — ${m.t}</div></div>`;
+  if(id==="dh")h+=goal("Robot ELBOW: 6 khớp quay, mọi dᵢ = 0, chỉ ba khâu a₂, a₃, a₄ có chiều dài. Cột α mới là thứ đưa robot ra khỏi mặt phẳng.")+
+    `<table class="dh"><thead><tr><th>Khâu i</th><th>aᵢ</th><th>αᵢ</th><th>dᵢ</th><th>θᵢ</th></tr></thead><tbody>`+
+    [0,1,2,3,4,5].map(i=>`<tr><td>${i+1}</td><td>${fN(elAl(i),2)}</td><td>${EL_ALT[i]}</td><td>0</td><td class="th">θ${SUBN[i]} = ?</td></tr>`).join("")+
+    `</tbody></table>`+box(TX("α₁ = 90° dựng cánh tay đứng lên; α₄ = −90° và α₅ = 90° tạo cổ tay cầu — ba trục 4, 5, 6 cắt nhau tại một điểm, đó là lý do bài toán nghịch giải tay được."))+
+    fig("cánh tay đang ở tư thế θ = 0 của bảng thông số D–H; kéo chuột để xoay góc nhìn.");
+  else if(id==="pose")h+=goal("Đích không chỉ là một điểm: cần cả hướng. T₆ có 6 thông tin độc lập — vừa đúng 6 khớp.")+
+    box(LN(M("$p")+" = ("+fN(p[0])+", "+fN(p[1])+", "+fN(p[2])+")")+
+      LN(M("$a")+" = ("+fN(a[0])+", "+fN(a[1])+", "+fN(a[2])+") — hướng tiếp cận, mũi tên trên hình")+
+      LN(M("$o")+" = ("+fN(d.o[0])+", "+fN(d.o[1])+", "+fN(d.o[2])+") — hướng mở bàn kẹp")+
+      TX("Chỉ cho p thì vô số nghiệm; cho cả [n o a] mới khóa được 6 ẩn."))+
+    fig("chữ thập xanh là p, mũi tên là vectơ tiếp cận a.");
+  else if(id==="th1")h+=goal("Nhìn từ trên xuống: cả cánh tay nằm trong một mặt phẳng đứng qua trục z₀. Mặt phẳng đó phải chứa điểm đích.")+
+    box(LN(M("$S_1$p_x + $C_1$p_y = 0")+"&emsp;(hàng 3 cột 4 của "+M("$A_1^{-1}$T_6")+")")+
+      LN(M("$θ_1 = atan2($p_y, $p_x)")+" = atan2("+fN(p[1])+", "+fN(p[0])+") = <b>"+fD(d.th1)+"</b>")+
+      TX("Nghiệm còn lại θ₁ + 180° = "+fD(wrapPi(d.th1+Math.PI))+" — robot quay lưng lại và với tay ra sau."))+
+    fig("đường tím đứt là hình chiếu của đích lên sàn; khớp 1 vừa quay tới đó.");
+  else if(id==="th234")h+=goal("Trong mặt phẳng cánh tay, khâu a₄ phải chỉ đúng hướng tiếp cận a — góc đó là θ₂₃₄ = θ₂ + θ₃ + θ₄.")+
+    box(LN(M("$C_1$a_x + $S_1$a_y")+" = "+fN(d.axy)+"&emsp;"+M("$a_z")+" = "+fN(a[2]))+
+      LN(M("$θ_234 = atan2($a_z, $C_1$a_x + $S_1$a_y)")+" = <b>"+fD(d.th234)+"</b>")+
+      TX("Đây chính là góc hướng φ của bài 3R phẳng, chỉ khác tên gọi."))+
+    fig("chưa khớp nào của cánh tay quay — θ₂₃₄ mới là tổng, chưa tách được từng góc.");
+  else if(id==="wrist")h+=goal("Biết hướng của a₄ thì lùi đúng một đoạn a₄ từ p là ra điểm cổ tay p′. Từ đây chỉ còn a₂, a₃ — bài toán 2R.")+
+    box(LN(M("$p′_x = $C_1$p_x + $S_1$p_y − $C_234$a_4")+" = "+fN(d.c1*p[0]+d.s1*p[1])+" − "+fN(d.c234*d.a4)+" = <b>"+fN(d.px)+"</b>")+
+      LN(M("$p′_y = $p_z − $S_234$a_4")+" = "+fN(p[2])+" − "+fN(d.s234*d.a4)+" = <b>"+fN(d.py)+"</b>")+
+      TX("So sánh: ở robot 3R phẳng ta cũng lùi a₃ theo hướng φ để ra tâm cổ tay W. Cùng một mẹo."))+
+    fig("p′ là gốc của khâu a₄ — điểm mà hai khâu đầu phải đưa tới.");
+  else if(id==="th3")h+=goal("Tam giác O–E–p′ biết đủ ba cạnh a₂, a₃ và r = |Op′| ⇒ định lý cos cho góc khuỷu.")+
+    box(LN(M("$r² = $p′_x² + $p′_y²")+" = "+fN(d.r2)+"&emsp;("+M("$r")+" = "+fN(Math.sqrt(d.r2))+")")+
+      LN(M("cos$θ_3 = ($r² − $a_2² − $a_3²) / 2$a_2$a_3")+" = <b>"+fN(d.c3r)+"</b>")+
+      (d.ok?LN(M("$S_3 = ±√(1 − $C_3²)")+" = "+fN(d.s3)+" ⇒ "+M("$θ_3")+" = <b>"+fD(d.th3)+"</b>")+
+        TX("Dấu + là khuỷu gập một phía, dấu − là phía kia — đúng hai nghiệm như robot 2R phẳng.")
+        :TX('<span class="fail">|cos θ₃| > 1 ⇒ vô nghiệm.</span> Điểm p′ nằm ngoài vành [|a₂ − a₃|, a₂ + a₃].')))+
+    (d.ok?fig("khớp 2 và 3 vẫn chưa quay — mới biết độ gập, chưa biết đặt tam giác ở đâu."):"");
+  else if(id==="th2")h+=goal("Đã biết θ₃ thì hai phương trình vị trí là tuyến tính theo C₂, S₂ — giải bằng định thức Cramer.")+
+    box(LN("("+M("$C_3$a_3 + $a_2")+")"+M("$C_2")+" − "+M("$S_3$a_3$S_2")+" = "+M("$p′_x")+"&emsp;⇒&emsp;"+M("$k_1")+" = "+fN(d.k1)+", "+M("$k_2")+" = "+fN(d.k2))+
+      LN(M("$θ_2 = atan2($k_1$p′_y − $k_2$p′_x, $k_1$p′_x + $k_2$p′_y)")+" = <b>"+fD(d.th2)+"</b>")+
+      TX("Mẫu số của hai định thức bằng nhau và luôn dương nên atan2 lấy trực tiếp hai tử số."))+
+    fig("khớp 2 và 3 vừa quay tới: đầu khâu a₃ đã nằm đúng điểm p′.");
+  else if(id==="th4")h+=goal("Hai khâu đầu lo vị trí, khâu a₄ lo phần hướng còn thiếu trong mặt phẳng.")+
+    box(LN(M("$θ_4 = $θ_234 − $θ_2 − $θ_3")+" = "+fD(d.th234)+" − "+fD(d.th2)+" − "+fD(d.th3)+" = <b>"+fD(d.th4)+"</b>"))+
+    fig("đầu khâu a₄ đã tới đúng điểm đích p.");
+  else if(id==="th5")h+=goal("Vị trí xong. Còn hướng: θ₅ nghiêng bàn tay ra khỏi mặt phẳng cánh tay.")+
+    box(LN(M("$S_5 = $C_234($C_1$a_x + $S_1$a_y) + $S_234$a_z")+" = "+fN(d.c234*d.axy+d.s234*a[2]))+
+      LN(M("$C_5 = $S_1$a_x − $C_1$a_y")+" = "+fN(d.s1*a[0]-d.c1*a[1]))+
+      LN(M("$θ_5 = atan2($S_5, $C_5)")+" = <b>"+fD(d.th5)+"</b>")+
+      TX("Nếu S₅ = 0 thì trục 4 và trục 6 trùng nhau — điểm kỳ dị cổ tay: θ₄ và θ₆ bù trừ nhau, vô số nghiệm."))+
+    fig("bàn tay vừa nghiêng đi; vectơ tiếp cận đã trùng hướng đích.");
+  else if(id==="th6")h+=goal("Cuối cùng xoay quanh chính trục tiếp cận cho khớp với vectơ o.")+
+    box(LN(M("$C_6 = −$S_234($C_1$O_x + $S_1$O_y) + $C_234$O_z")+" = "+fN(d.c6))+
+      LN(M("$S_6 = −$C_5[$C_234($C_1$O_x + $S_1$O_y) + $S_234$O_z] + $S_5($S_1$O_x − $C_1$O_y)")+" = "+fN(d.s6))+
+      LN(M("$θ_6 = atan2($S_6, $C_6)")+" = <b>"+fD(d.th6)+"</b>")+
+      TX("Dòng "+F("$S_6")+" ở trang 20 của slide in là "+F("− $S_5($S_1$O_x + $C_1$O_y)")+" — thay số vào thì θ₆ không khớp với động học thuận; dấu đúng là dấu dùng ở đây (bước Kiểm tra cho sai số 0)."))+
+    fig("bộ ba trục ở bàn tay đã trùng với hướng đích.");
+  else if(id==="check")h+=goal("Thế 6 góc vừa tìm vào bảng thông số D–H, nhân ra T₆ và so với tư thế đích.")+
+    box(LN("θ = ("+d.q.map(v=>fD(v)).join(", ")+")")+
+      LN(M("$p")+" tính lại = ("+fN(d.pv[0])+", "+fN(d.pv[1])+", "+fN(d.pv[2])+")")+
+      LN("sai số vị trí = "+fN(d.err,6)+", sai số hướng = "+fN(d.errR,6)+"&emsp;"+
+        (d.err<1e-6&&d.errR<1e-6?'<span class="good">✓ đạt</span>':'<span class="fail">✗ lệch</span>')))+
+    `<div class="mat" style="margin-top:8px">${matHTML(d.Tv,true)}</div>`;
+  else if(id==="brs"){const rows=[];
+    [1,-1].forEach(arm=>[1,-1].forEach(elb=>[1,-1].forEach(wr=>{const s=elIK({arm,elb,wr});
+      const cur=arm===S.el.br.arm&&elb===S.el.br.elb&&wr===S.el.br.wr;
+      rows.push(`<tr${cur?' class="cur"':''}><td>${arm>0?"trái":"phải"}</td><td>${elb>0?"lên":"xuống"}</td><td>${wr>0?"thuận":"lật"}</td><td>`+
+        (s.ok?s.q.map(v=>fN(v*R2D,0)).join(", "):'<span class="fail">vô nghiệm</span>')+`</td></tr>`);})));
+    h+=goal("Ba dấu ± độc lập nhau ⇒ 8 bộ góc khớp cho cùng một tư thế bàn tay.")+
+      `<table class="dh"><thead><tr><th>Vai</th><th>Khuỷu</th><th>Cổ tay</th><th>θ₁…θ₆ (°)</th></tr></thead><tbody>`+rows.join("")+`</tbody></table>`+
+      box(TX("Robot thật chọn nghiệm gần tư thế hiện tại nhất, nằm trong giới hạn khớp và không va chạm. Đổi nhánh bằng ba nút ở thẻ Chế độ mô phỏng."));}
+  return h;}
+
+// ================= 4.6 — MA TRẬN JACOBIAN & ĐỘNG HỌC NGHỊCH BẰNG LẶP SỐ =================
+function matSolve(A,b){const n=b.length,M=A.map((r,i)=>r.concat([b[i]]));   // khử Gauss có chọn trụ
+  for(let c=0;c<n;c++){let pv=c;for(let r=c+1;r<n;r++)if(Math.abs(M[r][c])>Math.abs(M[pv][c]))pv=r;
+    if(Math.abs(M[pv][c])<1e-12)return null;
+    [M[c],M[pv]]=[M[pv],M[c]];
+    for(let r=0;r<n;r++){if(r===c)continue;const f=M[r][c]/M[c][c];for(let k=c;k<=n;k++)M[r][k]-=f*M[c][k];}}
+  return M.map((r,i)=>r[n]/M[i][i]);}
+function matDet(A){const n=A.length,M=A.map(r=>r.slice());let det=1;
+  for(let c=0;c<n;c++){let pv=c;for(let r=c+1;r<n;r++)if(Math.abs(M[r][c])>Math.abs(M[pv][c]))pv=r;
+    if(Math.abs(M[pv][c])<1e-14)return 0;
+    if(pv!==c){[M[c],M[pv]]=[M[pv],M[c]];det=-det;}
+    det*=M[c][c];
+    for(let r=c+1;r<n;r++){const f=M[r][c]/M[c][c];for(let k=c;k<n;k++)M[r][k]-=f*M[c][k];}}
+  return det;}
+const matT=A=>A[0].map((_,j)=>A.map(r=>r[j]));
+const matMulG=(A,B)=>A.map(r=>B[0].map((_,j)=>r.reduce((s,v,k)=>s+v*B[k][j],0)));
+
+// Jacobian robot phẳng: ∂(x, y)/∂θ — đúng công thức trang 24 của slide
+function jacPlanar(th){const n=S.dof,cum=[];let s=0;
+  for(let i=0;i<n;i++){s+=th[i];cum.push(s);}
+  const J=[[],[]];
+  for(let j=0;j<n;j++){let dx=0,dy=0;
+    for(let i=j;i<n;i++){dx-=S.a[i]*Math.sin(cum[i]);dy+=S.a[i]*Math.cos(cum[i]);}
+    J[0].push(dx);J[1].push(dy);}
+  return J;}
+// Jacobian hình học 6×6 của ELBOW: cột i = [z₍ᵢ₋₁₎ × (p₆ − p₍ᵢ₋₁₎) ; z₍ᵢ₋₁₎]
+function jacEl(q){const T=elFK(q).T,pe=org(T[6]),J=[[],[],[],[],[],[]];
+  for(let i=0;i<6;i++){const z=zax(T[i]),c=v3.crs(z,v3.sub(pe,org(T[i])));
+    [c[0],c[1],c[2],z[0],z[1],z[2]].forEach((v,r)=>J[r].push(v));}
+  return J;}
+// sai lệch hướng dạng vectơ quay: ω lấy từ R_đích·Rᵀ
+function rotErr(Rd,T){const E=[[0,0,0],[0,0,0],[0,0,0]];
+  for(let i=0;i<3;i++)for(let j=0;j<3;j++){let s=0;for(let k=0;k<3;k++)s+=Rd[i][k]*T[j][k];E[i][j]=s;}
+  const w=[E[2][1]-E[1][2],E[0][2]-E[2][0],E[1][0]-E[0][1]],sn=Math.hypot(w[0],w[1],w[2]);
+  const ang=Math.acos(Math.max(-1,Math.min(1,(E[0][0]+E[1][1]+E[2][2]-1)/2)));
+  return sn<1e-9?[0,0,0]:v3.scl(w,ang/sn);}
+function jacState(){return R().jacState();}
+function jacElState(){const tg=elTarget(),T=elFK(S.el.q).T[6],p=org(T);
+  const Rd=[[tg.n[0],tg.o[0],tg.a[0]],[tg.n[1],tg.o[1],tg.a[1]],[tg.n[2],tg.o[2],tg.a[2]]];
+  const eo=rotErr(Rd,T),ep=v3.sub(tg.p,p);
+  return {J:jacEl(S.el.q),e:[ep[0],ep[1],ep[2],eo[0],eo[1],eo[2]],p,np:v3.len(ep),no:v3.len(eo)};}
+function jacPlanarState(){const P=joints(),h=P[P.length-1],e=[S.target.x-h.x,S.target.y-h.y];
+  return {J:jacPlanar(S.th),e,p:[h.x,h.y],np:Math.hypot(e[0],e[1]),no:0};}
+// một vòng lặp: Δq = α·J⁻¹e khi J vuông và không kỳ dị, ngược lại α·Jᵀ(JJᵀ+λ²I)⁻¹e
+function jacStep(){const st=jacState(),n=R().dof(),J=st.J,lam=S.jac.lam;
+  let dq=null,how="J⁻¹";
+  if(J.length===n&&Math.abs(matDet(J))>1e-6)dq=matSolve(J,st.e);
+  if(!dq){const Jt=matT(J),JJt=matMulG(J,Jt).map((r,i)=>r.map((v,j)=>v+(i===j?lam*lam:0)));
+    const y=matSolve(JJt,st.e);
+    if(!y)return false;
+    dq=Jt.map(r=>r.reduce((s,v,k)=>s+v*y[k],0));how="DLS";}
+  const a=S.jac.alpha;
+  for(let i=0;i<n;i++)R().jacNudge(i,a*dq[i]);
+  const af=jacState(),ne=Math.hypot(...af.e);
+  S.jac.it.push({k:S.jac.n+1,ne,np:af.np,no:af.no,how,q:R().q().slice(0,n)});
+  S.jac.n++;
+  S.jac.path.push(af.p.slice());
+  if(S.jac.it.length>40)S.jac.it.shift();
+  return ne>1e-4;}
+function jacRun(){if(!S.jac.play)return;
+  const go=jacStep();syncSliders();render();
+  if(!go||S.jac.n>=200){S.jac.play=false;document.getElementById("jacPlay").textContent="▶ Lặp tới hội tụ";return;}
+  setTimeout(()=>requestAnimationFrame(jacRun),90);}
+function jacClear(){S.jac.it=[];S.jac.path=[];S.jac.n=0;S.jac.play=false;
+  const b=document.getElementById("jacPlay");if(b)b.textContent="▶ Lặp tới hội tụ";}
+function jacReset(){jacClear();                                        // nút "Đặt lại q₀": về tư thế xuất phát
+  R().jacSeed();
+  syncSliders();render();}
+function jacTrail3(out){if(S.jac.path.length<2)return;
+  for(let i=0;i<S.jac.path.length-1;i++)out.push(seg3(S.jac.path[i],S.jac.path[i+1],"rgba(233,135,58,.75)",2.4));
+  S.jac.path.forEach(p=>out.push(dot3(p,2.2,"#E9873A")));}
+function jacTrail2(){if(S.jac.path.length<2)return;
+  ctx.strokeStyle="rgba(233,135,58,.8)";ctx.lineWidth=2.4;ctx.beginPath();
+  S.jac.path.forEach((p,i)=>{const s=w2s(p[0],p[1]);i?ctx.lineTo(s.x,s.y):ctx.moveTo(s.x,s.y);});ctx.stroke();
+  ctx.fillStyle="#E9873A";S.jac.path.forEach(p=>{const s=w2s(p[0],p[1]);ctx.beginPath();ctx.arc(s.x,s.y,2.6,0,7);ctx.fill();});}
+
+function jacHTML(){const st=jacState(),el=kg3d(),n=R().dof(),J=st.J;
+  const gridJ=`<div class="mat">`+J.map(r=>"⎢ "+r.map(v=>fmt(v)).join("  ")+" ⎥").join("<br>")+`</div>`;
+  let h=`<div class="task">Khi không có lời giải dạng đóng — hoặc robot có kết cấu bất kỳ — vẫn đưa được bàn tay tới đích bằng <b>vi phân + lặp</b>: ${F("ė = $J(q)·q̇")} ⇒ ${F("q̇ = $J⁻¹(q)·ė")}.</div>`;
+  if(!el&&S.dof===2){const l1=S.a[0],l2=S.a[1],det=l1*l2*Math.sin(S.th[1]),sing=Math.abs(Math.sin(S.th[1]))<0.09;
+    h+=`<div class="method">Thiết lập J(q) từ đạo hàm riêng <small>· trang 24</small></div><div class="fxbox fx">`+
+      LN(M("$x = $l_1cos$θ_1 + $l_2cos($θ_1+$θ_2)")+",&ensp;"+M("$y = $l_1sin$θ_1 + $l_2sin($θ_1+$θ_2)"))+
+      `<div class="fx ln">`+M("$J(q)")+" = "+BM([["−"+M("$l_1$s_1")+" − "+M("$l_2$s_12"),"−"+M("$l_2$s_12")],
+        [M("$l_1$c_1")+" + "+M("$l_2$c_12"),M("$l_2$c_12")]])+" = "+
+        BM([[fmt(J[0][0]),fmt(J[0][1])],[fmt(J[1][0]),fmt(J[1][1])]])+`</div>`+
+      LN("det "+M("$J")+" = "+M("$l_1$l_2$s_2")+" = "+fN(l1,2)+"·"+fN(l2,2)+"·sin("+fD(S.th[1])+") = <b>"+fN(det)+"</b>")+`</div>`;
+    h+=`<div class="method">Ma trận nghịch đảo J⁻¹(q) <small>· trang 25</small></div><div class="fxbox fx">`+
+      `<div class="fx ln">`+M("$J⁻¹")+" = "+FR("1","det "+M("$J"))+BM([[M("$J_22"),"−"+M("$J_12")],["−"+M("$J_21"),M("$J_11")]])+`</div>`+
+      (Math.abs(det)>1e-4?`<div class="fx ln">= `+BM([[fmt(J[1][1]/det),fmt(-J[0][1]/det)],[fmt(-J[1][0]/det),fmt(J[0][0]/det)]])+`</div>`
+        :TX('<span class="fail">det J ≈ 0</span> — không nghịch đảo được, xem ô kỳ dị bên dưới.'))+`</div>`;
+    h+=`<div class="fxbox" style="border-left:3px solid ${sing?"#B23A2A":"#CFDDEA"}">`+
+      `<div class="method first">Điểm kỳ dị (singularity)</div>`+
+      TX("Khi "+F("$s_2 = sin$θ_2 = 0")+" ⇒ θ₂ = 0° (duỗi thẳng) hoặc ±180° (gập sát) thì det J = 0: bàn tay mất một hướng chuyển động và "+F("$J⁻¹")+" không tồn tại.")+
+      TX(sing?'<span class="fail">Đang ở gần kỳ dị: θ₂ = '+fD(S.th[1])+'</span> — chương trình tự chuyển sang giả nghịch đảo tắt dần (DLS) với λ = '+fN(S.jac.lam,2)+"."
+        :"Hiện θ₂ = "+fD(S.th[1])+" ⇒ còn xa kỳ dị, dùng thẳng "+F("$J⁻¹")+".")+`</div>`;}
+  else{const dt=el?matDet(J):0;
+    h+=`<div class="method">Jacobian ${el?"hình học 6×6":"2×"+n}</div><div class="fxbox fx">`+
+      (el?TX("Cột i = "+F("[$z_i₋₁ × ($p_6 − $p_i₋₁) ; $z_i₋₁]")+" — ba hàng trên là vận tốc dài, ba hàng dưới là vận tốc góc.")+
+          (S.robot==="stanford"?TX("Khớp 3 tịnh tiến nên cột 3 = "+F("[$z_2 ; 0]")+": trượt dọc z₂ chỉ đẩy bàn tay đi, không làm nó quay."):"")
+        :TX("Robot 3R phẳng: 2 phương trình, 3 ẩn ⇒ J không vuông, phải dùng giả nghịch đảo (dư dẫn động)."))+
+      gridJ+
+      (el?LN("det "+M("$J")+" = <b>"+fN(dt,5)+"</b>"+(Math.abs(dt)<1e-3?' <span class="fail">≈ 0 — gần kỳ dị</span>':"")):"")+`</div>`;
+    if(S.robot==="elbow")h+=`<div class="fxbox"><div class="method first">Ba kiểu kỳ dị của robot ELBOW</div>`+
+      TX("<b>Cổ tay:</b> θ₅ = 0 ⇒ trục 4 trùng trục 6, mất một bậc quay — θ₄ và θ₆ bù trừ nhau.")+
+      TX("<b>Khuỷu duỗi:</b> θ₃ = 0 hoặc ±180° ⇒ bàn tay nằm trên biên tầm với.")+
+      TX("<b>Vai:</b> điểm cổ tay nằm trên trục z₀ ⇒ θ₁ không xác định.")+`</div>`;
+    if(S.robot==="stanford")h+=`<div class="fxbox"><div class="method first">Kỳ dị của robot Stanford · det J = d₃²·s₂·s₅</div>`+
+      TX("<b>Cổ tay:</b> θ₅ = 0 ⇒ trục 4 trùng trục 6 (trang 35): chỉ tổng θ₄ + θ₆ có ý nghĩa.")+
+      TX("<b>Tay dựng đứng:</b> θ₂ = 0° hoặc 180° ⇒ cần trượt trùng phương trục thân: quay θ₁ và ngẩng θ₂ cùng đẩy W theo một hướng.")+
+      TX("<b>Tay thụt về vai:</b> d₃ = 0 ⇒ W nằm trên trục khớp 2, ngẩng θ₂ không còn dời được W — nằm ngoài hành trình ["+ST_D3.join(", ")+"] nên robot này không chạm tới.")+`</div>`;}
+  h+=`<div class="method">Quy trình lặp <small>· trang 26</small></div><div class="fxbox fx">`+
+    LN("<i>e</i><sub>k</sub> = <i>P</i><sub>đích</sub> − <i>P</i>(<i>q</i><sub>k</sub>),&ensp;"+
+      "<i>q</i><sub>k+1</sub> = <i>q</i><sub>k</sub> + α·<i>J</i>⁻¹(<i>q</i><sub>k</sub>)·<i>e</i><sub>k</sub>,&ensp;dừng khi ‖<i>e</i><sub>k</sub>‖ < ε")+
+    LN("α = <b>"+fN(S.jac.alpha,2)+"</b>&ensp;λ (DLS) = <b>"+fN(S.jac.lam,2)+"</b>&ensp;ε = <b>1e−4</b>")+
+    LN("sai số hiện tại: vị trí <b>"+fN(st.np,5)+"</b>"+(el?", hướng <b>"+fN(st.no,5)+"</b>":"")+
+      (Math.hypot(...st.e)<1e-4?' <span class="good">✓ đã hội tụ</span>':""))+`</div>`;
+  if(S.jac.it.length){const rows=S.jac.it.slice(-12).map(r=>
+      `<tr><td>${r.k}</td><td>${fN(r.ne,5)}</td><td>${r.how}</td><td>${r.q.map((v,i)=>R().prism&&R().prism[i]?fN(v,2):fN(v*R2D,0)).join(", ")}</td></tr>`).join("");
+    h+=`<div class="method">Nhật ký lặp <small>· ${S.jac.n} vòng</small></div>`+
+      `<table class="dh"><thead><tr><th>k</th><th>‖e‖</th><th>cách giải</th><th>q (°)</th></tr></thead><tbody>${rows}</tbody></table>`+
+      `<p class="hint" style="margin-top:6px">Vết cam trên hình là đường đi của bàn tay qua từng vòng lặp — bước dài khi ở xa kỳ dị, bò rất chậm khi lại gần.</p>`;}
+  else h+=`<p class="hint" style="margin-top:8px">Bấm <b>1 bước</b> để đi từng vòng lặp, hoặc <b>▶ Lặp tới hội tụ</b> để chạy hết. ${el?"Đích lấy theo thanh trượt tư thế đích.":"Bấm/kéo trên hình để đổi điểm đích."}</p>`;
+  return h;}
+
+// ---------- quỹ đạo ELBOW: nội suy thẳng trong không gian Đề-các ----------
+// Vị trí chạy dọc hình, còn hướng tiếp cận giữ nguyên — đó là điều phân biệt nội suy Đề-các với nội suy khớp.
+function elBuildShape(name){
+  if(name==="line")return [[[1.25,-0.7,0.55],[1.25,0.7,1.35]]];
+  if(name==="circle"){const c=[1.25,0,0.95],R=0.45,n=48,st=[];
+    for(let i=0;i<=n;i++){const a=2*Math.PI*i/n;st.push([c[0],c[1]+R*Math.cos(a),c[2]+R*Math.sin(a)]);}
+    return [st];}
+  return null;}
+function elBuildSamples(strokes,perUnit){const out=[];
+  for(const st of strokes)for(let i=0;i<st.length-1;i++){const a=st[i],b=st[i+1],v=v3.sub(b,a);
+    const n=Math.max(2,Math.round(v3.len(v)*perUnit));
+    for(let k=0;k<=n;k++)out.push(v3.add(a,v3.scl(v,k/n)));}
+  return out;}
+function elSetShape(name){const tr=S.el.tr;tr.shape=name;tr.strokes=elBuildShape(name);
+  tr.samples=elBuildSamples(tr.strokes,34);tr.idx=0;tr.trail=[];elTrajStop();markShape(name);render();}
+function elTrajStop(){S.el.tr.playing=false;document.getElementById("trajPlay").textContent="▶ Chạy";}
+function elTrajToggle(){const tr=S.el.tr;if(!tr.samples.length)elSetShape("line");
+  tr.playing=!tr.playing;document.getElementById("trajPlay").textContent=tr.playing?"⏸ Dừng":"▶ Chạy";
+  if(tr.playing){if(tr.idx>=tr.samples.length){tr.idx=0;tr.trail=[];}elAnimate();}}
+function elAnimate(){const tr=S.el.tr;if(!tr.playing||S.mode!=="traj"||S.robot!=="elbow")return;
+  if(tr.idx>=tr.samples.length){elTrajStop();render();return;}
+  const p=tr.samples[tr.idx++];S.el.tgt.x=p[0];S.el.tgt.y=p[1];S.el.tgt.z=p[2];
+  const d=elIK(S.el.br);                                             // ngoài tầm với thì nhấc bút, cánh tay giữ tư thế cũ
+  if(d.ok)S.el.q=d.q;
+  tr.trail.push({p,pen:d.ok});
+  syncElSliders();render();requestAnimationFrame(elAnimate);}
+const EL_PEN="#1E7A54";                                              // xanh lá: tách vết bàn tay khỏi màu cam của khâu a₄
+function elTraj3(out){const tr=S.el.tr;
+  if(tr.strokes)for(const st of tr.strokes)for(let i=0;i<st.length-1;i++)
+    out.push(seg3(st[i],st[i+1],"rgba(94,118,144,.7)",1.8,[6,4]));
+  for(let i=0;i<tr.trail.length-1;i++)if(tr.trail[i].pen&&tr.trail[i+1].pen)
+    out.push(seg3(tr.trail[i].p,tr.trail[i+1].p,EL_PEN,3.4));}
+
+// ---------- thanh trượt cho ELBOW ----------
+function retargetEl(){if(S.mode==="ik")elStepGo(S.el.step,false);else render();}
+function syncElSliders(){document.querySelectorAll("#sliders input[data-elth]").forEach(inp=>{
+  const v=S.el.q[+inp.dataset.elth]*R2D;inp.value=v;inp.parentNode.querySelector(".val").textContent=v.toFixed(0)+"°";});}
+function syncSliders(){R().syncSliders();}
+function buildSlidersEl(){const box=document.getElementById("sliders");box.innerHTML="";
+  const dis=S.mode!=="fk",cc=["","c2","c3","","",""];
+  for(let i=0;i<6;i++){const el=sEl("θ"+SUBN[i],-180,180,S.el.q[i]*R2D,"°",cc[i],v=>{S.el.q[i]=v*D2R;render();},dis);
+    el.querySelector("input").dataset.elth=i;box.appendChild(el);}
+  ["a₂","a₃","a₄"].forEach((nm,i)=>box.appendChild(
+    sEl(nm+" (dài khâu)",0.1,1.6,S.el.a[i],"","",v=>{S.el.a[i]=v;retargetEl();},false,0.05)));
+  if(S.mode!=="fk"){const t=S.el.tgt;
+    if(S.mode!=="traj"){                                             // tab quỹ đạo: đích do đường đi lái, chỉ chừa lại hướng tiếp cận
+      box.appendChild(sEl("đích x",-2.4,2.4,t.x,"","cp",v=>{t.x=v;retargetEl();},false,0.05));
+      box.appendChild(sEl("đích y",-2.4,2.4,t.y,"","cp",v=>{t.y=v;retargetEl();},false,0.05));
+      box.appendChild(sEl("đích z",-1,2.6,t.z,"","cp",v=>{t.z=v;retargetEl();},false,0.05));}
+    box.appendChild(sEl("tiếp cận — phương vị",-180,180,t.az*R2D,"°","",v=>{t.az=v*D2R;retargetEl();}));
+    box.appendChild(sEl("tiếp cận — chúc",-90,90,t.el*R2D,"°","",v=>{t.el=v*D2R;retargetEl();}));
+    box.appendChild(sEl("xoay quanh tiếp cận",-180,180,t.roll*R2D,"°","",v=>{t.roll=v*D2R;retargetEl();}));}
+  if(S.mode==="jac"){
+    box.appendChild(sEl("α (hệ số học)",0.05,1,S.jac.alpha,"","",v=>{S.jac.alpha=v;updatePanels();},false,0.05));
+    box.appendChild(sEl("λ (DLS)",0.01,0.4,S.jac.lam,"","",v=>{S.jac.lam=v;updatePanels();},false,0.01));}}
+
+// ---------- điều khiển từng bước cho ELBOW ----------
+let elTimer=0;
+function elStepGo(i,anim){const ids=elStepIds(),d=elIK(S.el.br);
+  S.el.step=Math.max(0,Math.min(i,elStepLimit(d)));
+  const to=elStepPose(ids[S.el.step],d);
+  if(anim){S.el.anim={from:S.el.q.slice(),to,t0:performance.now(),dur:800};
+    if(!S.el.raf)S.el.raf=requestAnimationFrame(elStepTick);}
+  else{S.el.anim=null;S.el.q=to.slice();render();}
+  elSchedule();}
+function elStepTick(now){S.el.raf=0;const A=S.el.anim;if(!A||S.mode!=="ik"||S.robot!=="elbow")return;
+  const t=Math.min(1,(now-A.t0)/A.dur),e=t<0.5?2*t*t:1-2*(1-t)*(1-t);
+  if(t<1){S.el.q=A.from.map((v,i)=>v+wrapPi(A.to[i]-v)*e);S.el.raf=requestAnimationFrame(elStepTick);}
+  else{S.el.q=A.to.slice();S.el.anim=null;}
+  render();}
+function elSchedule(){clearTimeout(elTimer);if(!S.stepPlay)return;
+  if(S.el.step>=elStepLimit(elIK(S.el.br))){S.stepPlay=false;document.getElementById("stPlay").textContent="▶ Tự chạy";return;}
+  elTimer=setTimeout(()=>{if(S.stepPlay&&S.mode==="ik")elStepGo(S.el.step+1,true);},4200);}
+function elStepPanels(){const ids=elStepIds(),d=elIK(S.el.br),lim=elStepLimit(d);
+  setHTML("stepList",elStepListHTML(ids,lim));setHTML("stepBody",elStepHTML(ids,d));
+  document.getElementById("stFirst").disabled=S.el.step===0;document.getElementById("stPrev").disabled=S.el.step===0;
+  document.getElementById("stNext").disabled=S.el.step>=lim;document.getElementById("stLast").disabled=S.el.step>=lim;
+  document.getElementById("stCount").textContent=(S.el.step+1)+" / "+ids.length;
+  const b=document.getElementById("elReach");
+  b.textContent=d.ok?"Trong tầm với":"Ngoài tầm với";b.className="badge "+(d.ok?"ok":"bad");
+  syncElSliders();}
+
+// ---------- thay số bảng thông số D–H cho ELBOW ----------
+function elDhSubHTML(){const q=S.el.q,ca=i=>fN(Math.cos(EL_AL[i]),0),sa=i=>fN(Math.sin(EL_AL[i]),0);
+  const row=i=>LN("Hàng "+(i+1)+": "+M("$θ_"+(i+1))+" = "+fD(q[i])+", "+M("$d")+" = 0, "+M("$a")+" = "+fN(elAl(i),2)+
+    ", α = "+EL_ALT[i]+" ⇒ cosα = "+ca(i)+", sinα = "+sa(i));
+  return row(0)+row(1)+row(3)+
+    TX("Hàng có α = ±90° làm cột thứ ba của khối quay đổi chỗ — đó là lúc trục z của khâu sau vuông góc với trục z của khâu trước, tức là robot rời khỏi mặt phẳng.");}
+
+// ================= ROBOT STANFORD 6 BẬC (3D) — Chương IV, mục 4.3 =================
+// Bảng thông số D–H trang 25: aᵢ = 0, αᵢ = [−90, 90, 0, −90, 90, 0]°, dᵢ = [0, d₂, d₃, 0, 0, d₆].
+// Khớp 3 là khớp tịnh tiến: θ₃ = 0 cố định, biến khớp là d₃ — robot "thò tay ra" thay vì gập khuỷu.
+const ST_AL=[-90,90,0,-90,90,0].map(v=>v*D2R);
+const ST_ALT=["−90°","90°","0°","−90°","90°","0°"];
+const ST_D3=[0.3,1.5];            // hành trình khớp tịnh tiến: d₃ ngoài khoảng này là nghiệm toán học, không phải nghiệm vật lý
+const ST_H0=0.75;                 // chiều cao bệ tới vai — chỉ để vẽ; bảng thông số D–H đặt gốc hệ 0 ngay tại vai
+const stDv=i=>[0,S.st.d2,S.st.q[2],0,0,S.st.d6][i];
+const stA=(i,q)=>dhMat(i===2?0:q[i],i===2?q[2]:[0,S.st.d2,0,0,0,S.st.d6][i],0,ST_AL[i]);
+function stFK(q){const A=[],T=[ID4()];for(let i=0;i<6;i++){A.push(stA(i,q));T.push(mul(T[i],A[i]));}return{A,T};}
+const reachSt=()=>Math.hypot(ST_D3[1],S.st.d2)+S.st.d6;
+
+// ---------- động học nghịch dạng đóng theo slide (4-24 → 4-36) ----------
+// Slide viết ¹T₆ với cột p = (S₂d₃, −C₂d₃, d₂): tức là đã coi d₆ = 0. Với d₆ ≠ 0 phải áp các công thức cho tâm cổ tay W = p − d₆·a.
+function stIK(br){const {p,n,o,a}=tgtPose(S.st.tgt),d2=S.st.d2,d6=S.st.d6;
+  const d={p,n,o,a,d2,d6,br};
+  d.W=[p[0]-d6*a[0],p[1]-d6*a[1],p[2]-d6*a[2]];
+  d.r=Math.hypot(d.W[0],d.W[1]); d.Phi=Math.atan2(d.W[1],d.W[0]);
+  d.ok=d.r>=d2-1e-9;                                            // W lọt vào mặt trụ bán kính d₂ ⇒ sin(Φ − θ₁) = d₂/r > 1
+  if(!d.ok){d.phys=false;return d;}
+  d.rho=br.sh*Math.sqrt(Math.max(0,d.r*d.r-d2*d2));             // ±√(r² − d₂²)
+  d.th1=wrapPi(d.Phi-Math.atan2(d2,d.rho)); d.c1=Math.cos(d.th1); d.s1=Math.sin(d.th1);
+  d.u=d.c1*d.W[0]+d.s1*d.W[1];                                   // C₁W_x + S₁W_y
+  d.th2=Math.atan2(d.u,d.W[2]); d.c2=Math.cos(d.th2); d.s2=Math.sin(d.th2);
+  d.d3=d.s2*d.u+d.c2*d.W[2];                                     // (4-32)
+  d.phys=d.d3>=ST_D3[0]-1e-9&&d.d3<=ST_D3[1]+1e-9;
+  d.axy=d.c1*a[0]+d.s1*a[1]; d.ayx=-d.s1*a[0]+d.c1*a[1];
+  d.f21=d.c2*d.axy-d.s2*a[2];                                    // C₂(C₁aₓ + S₁a_y) − S₂a_z
+  d.th4=wrapPi(Math.atan2(d.ayx,d.f21)+(br.wr>0?0:Math.PI)); d.c4=Math.cos(d.th4); d.s4=Math.sin(d.th4);
+  d.S5=d.c4*d.f21+d.s4*d.ayx; d.C5=d.s2*d.axy+d.c2*a[2];
+  d.th5=Math.atan2(d.S5,d.C5); d.c5=Math.cos(d.th5); d.s5=Math.sin(d.th5);
+  d.oxy=d.c1*o[0]+d.s1*o[1]; d.oyx=-d.s1*o[0]+d.c1*o[1];
+  d.S6=-d.c5*(d.c4*(d.c2*d.oxy-d.s2*o[2])+d.s4*d.oyx)+d.s5*(d.s2*d.oxy+d.c2*o[2]);
+  d.C6=-d.s4*(d.c2*d.oxy-d.s2*o[2])+d.c4*d.oyx;
+  d.th6=Math.atan2(d.S6,d.C6);
+  d.q=[d.th1,d.th2,d.d3,d.th4,d.th5,d.th6];
+  const Tv=stFK(d.q).T[6];                                       // kiểm tra ngược bằng động học thuận
+  d.Tv=Tv; d.pv=org(Tv); d.err=v3.len(v3.sub(d.pv,p));
+  d.errR=Math.max(v3.len(v3.sub(zax(Tv),a)),v3.len(v3.sub(yax(Tv),o)));
+  return d;}
+
+// ---------- các bước dạy động học nghịch Stanford ----------
+const ST_STEPM={
+  dh:   {s:"Bảng thông số D–H", t:"Bảng thông số D–H của robot Stanford — khớp 3 tịnh tiến", ph:0},
+  pose: {s:"Đích",     t:"Tư thế đích T₆ = [n o a p] — 6 ràng buộc",           ph:0},
+  wrist:{s:"W",        t:"Lùi d₆ theo vectơ tiếp cận → tâm cổ tay W",          ph:1},
+  th1:  {s:"θ₁",       t:"θ₁ — từ −S₁W_x + C₁W_y = d₂ (4-29)",                ph:1},
+  th2:  {s:"θ₂",       t:"θ₂ — hàng 1 và 2, cột 4 của A₁⁻¹T₆ (4-30)",          ph:1},
+  d3:   {s:"d₃",       t:"d₃ — độ vươn của khớp tịnh tiến (4-32)",             ph:1},
+  th4:  {s:"θ₄",       t:"θ₄ — từ vectơ tiếp cận a (4-33)",                    ph:1},
+  th5:  {s:"θ₅",       t:"θ₅ — nghiêng cổ tay (4-34)",                         ph:1},
+  th6:  {s:"θ₆",       t:"θ₆ — xoay quanh trục tiếp cận (4-36)",               ph:1},
+  check:{s:"Kiểm tra", t:"Thế 6 biến khớp vào bảng thông số D–H → T₆ bằng số", ph:2},
+  brs:  {s:"4 nghiệm", t:"Hai dấu ± ⇒ bốn bộ biến khớp cho cùng một tư thế",   ph:2}};
+const stStepIds=()=>["dh","pose","wrist","th1","th2","d3","th4","th5","th6","check","brs"];
+// vô nghiệm dừng ở θ₁ (chỗ lộ ra r < d₂); có nghiệm toán học mà d₃ vượt hành trình thì dừng ở d₃
+const stStepLimit=d=>{const ids=stStepIds();return !d.ok?ids.indexOf("th1"):!d.phys?ids.indexOf("d3"):ids.length-1;};
+function stStepPose(id,d){const q=[0,0,ST_D3[0],0,0,0];if(!d.ok)return q;
+  const k={dh:0,pose:0,wrist:0,th1:1,th2:2,d3:3,th4:4,th5:5,th6:6,check:6,brs:6}[id];
+  if(k>=1)q[0]=d.th1;
+  if(k>=2)q[1]=d.th2;
+  if(k>=3)q[2]=Math.max(ST_D3[0],Math.min(ST_D3[1],d.d3));        // vượt hành trình: tay duỗi hết cỡ vẫn thiếu
+  if(k>=4)q[3]=d.th4;
+  if(k>=5)q[4]=d.th5;
+  if(k>=6)q[5]=d.th6;
+  return q;}
+
+// ---------- vẽ robot Stanford ----------
+function stBase3(out,z0){const n=28,rb=0.22;                     // bệ và thân đứng: không có trong bảng thông số D–H
+  for(let k=0;k<n;k++){const a0=k/n*2*Math.PI,a1=(k+1)/n*2*Math.PI;
+    out.push(seg3([rb*Math.cos(a0),rb*Math.sin(a0),z0],[rb*Math.cos(a1),rb*Math.sin(a1),z0],"#9FBBD3",2));}
+  out.push(seg3([0,0,z0],[0,0,-0.03],"#C4D4E2",16));}
+function stCyl3(out,z,ok){const n=40,r=S.st.d2,col=ok?"rgba(123,79,184,.5)":"rgba(178,58,42,.85)";   // mặt trụ bán kính d₂ ở độ cao của W
+  for(let k=0;k<n;k+=2){const a0=k/n*2*Math.PI,a1=(k+1)/n*2*Math.PI;
+    out.push(seg3([r*Math.cos(a0),r*Math.sin(a0),z],[r*Math.cos(a1),r*Math.sin(a1),z],col,1.4));}}
+function renderSt(){clear();
+  const d=S.mode==="fk"?null:stIK(S.st.br), out=[], {T}=stFK(S.st.q), q=S.st.q;
+  floor3(out,reachSt(),-ST_H0);stBase3(out,-ST_H0);
+  out.push(arrow3([0,0,0],[0.5,0,0],COL.blue,"x₀"));
+  out.push(arrow3([0,0,0],[0,0.5,0],COL.amber,"y₀"));
+  out.push(arrow3([0,0,0],[0,0,0.5],"#1E7A54","z₀"));
+  const O1=org(T[1]),O2=org(T[2]),O3=org(T[3]),O6=org(T[6]),z2=zax(T[2]);
+  out.push(seg3(O1,O2,EL_COL[1],9));out.push(lab3(O1,O2,"d₂ = "+fN(S.st.d2,2),EL_COL[1]));
+  out.push(seg3(O2,v3.add(O2,v3.scl(z2,Math.min(ST_D3[0],q[2]))),COL.deep,14));   // ống ngoài cố định, cần trượt thò ra khỏi ống
+  out.push(seg3(O2,O3,EL_COL[2],6));out.push(lab3(O2,O3,"d₃ = "+fN(q[2],2),EL_COL[2]));
+  out.push(seg3(O3,O6,EL_COL[3],7));out.push(lab3(O3,O6,"d₆ = "+fN(S.st.d6,2),EL_COL[3]));
+  [O1,O2,O3].forEach((p,i)=>out.push(dot3(p,i===2?7:6,i?"#12558A":COL.deep)));
+  const pt=pr3(O6);out.push({d:pt.d,f(){ctx.fillStyle=COL.deep;ctx.fillRect(pt.x-6,pt.y-6,12,12);}});
+  out.push(txt3([0,0,0],"O₀",COL.muted,-24,16));
+  if(S.showArcs)[0,1,3,4,5].forEach(i=>{if(Math.abs(q[i])<2e-2)return;
+    const Tp=T[i],r=[0.26,0.24,0,0.2,0.18,0.16][i];arc3(org(Tp),xax(Tp),yax(Tp),0,q[i],r,EL_COL[i],"θ"+(i+1),out);});
+  if(S.showFrames)for(let i=1;i<=6;i++)triad3(T[i],out,"₀₁₂₃₄₅₆"[i]);
+  else triad3(T[6],out,null,0.3);
+  if(S.mode!=="fk"){const tg=tgtPose(S.st.tgt),col=d.ok&&d.phys?COL.sky:"#B23A2A";
+    out.push(arrow3(tg.p,v3.add(tg.p,v3.scl(tg.a,0.36)),col,"a"));
+    [[0.11,0,0],[0,0.11,0],[0,0,0.11]].forEach(v=>out.push(seg3(v3.sub(tg.p,v),v3.add(tg.p,v),col,2)));
+    out.push(txt3(tg.p,"đích",col,11,-11));
+    out.push(seg3(tg.p,d.W,"#7B4FB8",1.4,[4,4]));out.push(dot3(d.W,4,"#7B4FB8"));out.push(txt3(d.W,"W","#7B4FB8",8,-8,"bold 11px 'Courier New'"));
+    stCyl3(out,d.W[2],d.ok);}
+  if(S.mode==="jac")jacTrail3(out);
+  if(S.mode==="traj")stTraj3(out);
+  out.sort((u,v)=>u.d-v.d).forEach(o=>o.f());
+  hud3(O6,d&&(!d.ok?"vô nghiệm: r = "+fN(d.r,3)+" < d₂":!d.phys?"d₃ = "+fN(d.d3,2)+" ngoài hành trình ["+ST_D3.join(", ")+"]":"sai số vị trí = "+fN(d.err,4)));
+  updatePanels();}
+
+// ---------- bảng biểu & công thức cho Stanford ----------
+function stDhBody(){const q=S.st.q;return [0,1,2,3,4,5].map(i=>i===2
+  ?`<tr><td>3</td><td>0</td><td>${ST_ALT[2]}</td><td class="th">${fN(q[2],2)}</td><td>0</td></tr>`   // khớp tịnh tiến: d₃ là biến
+  :`<tr><td>${i+1}</td><td>0</td><td>${ST_ALT[i]}</td><td>${i===1||i===5?fN(stDv(i),2):"0"}</td><td class="th">${fN(q[i]*R2D,1)}</td></tr>`).join("");}
+function stDhSubHTML(){const q=S.st.q,ca=i=>fN(Math.cos(ST_AL[i]),0),sa=i=>fN(Math.sin(ST_AL[i]),0);
+  const row=i=>LN("Hàng "+(i+1)+": "+(i===2?M("$θ_3")+" = 0, "+M("$d_3")+" = <b>"+fN(q[2],2)+"</b> (biến)":M("$θ_"+(i+1))+" = "+fD(q[i])+", "+M("$d_"+(i+1))+" = "+fN(stDv(i),2))+
+    ", "+M("$a")+" = 0, α = "+ST_ALT[i]+" ⇒ cosα = "+ca(i)+", sinα = "+sa(i));
+  return row(0)+row(1)+row(2)+
+    TX("Hàng 3 là khớp tịnh tiến: θ₃ = 0 nên khối quay của A₃ là ma trận đơn vị, chỉ còn cột p = (0, 0, d₃) — khớp này đẩy hệ 3 đi dọc z₂ chứ không xoay nó.");}
+
+function stFkHTML(){const q=S.st.q,T=stFK(q).T[6],p=org(T),a=zax(T),n=xax(T),o=yax(T);
+  const [c1,c2,c4,c5,c6]=[0,1,3,4,5].map(i=>Math.cos(q[i])),[s1,s2,s4,s5,s6]=[0,1,3,4,5].map(i=>Math.sin(q[i])),d2=S.st.d2,d3=q[2],d6=S.st.d6;
+  const C={dx:c1*s2*d3-s1*d2+d6*(c1*c2*c4*s5+c1*c5*s2-s1*s4*s5), dy:s1*s2*d3+c1*d2+d6*(c1*s4*s5+c2*c4*s1*s5+c5*s1*s2), dz:c2*d3+d6*(c2*c5-c4*s2*s5),
+    r13:c1*(c2*c4*s5+s2*c5)-s1*s4*s5, r23:s1*(c2*c4*s5+s2*c5)+c1*s4*s5, r33:-s2*c4*s5+c2*c5,
+    r11:c1*(c2*(c4*c5*c6-s4*s6)-s2*s5*c6)-s1*(s4*c5*c6+c4*s6), r22:s1*(-c2*(c4*c5*s6+s4*c6)+s2*s5*s6)+c1*(-s4*c5*s6+c4*c6)};
+  const dif=Math.max(Math.abs(C.dx-p[0]),Math.abs(C.dy-p[1]),Math.abs(C.dz-p[2]),Math.abs(C.r13-a[0]),Math.abs(C.r23-a[1]),Math.abs(C.r33-a[2]),
+    Math.abs(C.r11-n[0]),Math.abs(C.r22-o[1]));
+  let h=`<div class="task">Bài toán: biết 5 góc khớp và độ vươn ${F("$d_3")} → tìm tư thế bàn tay ${F("$T_6 = [n o a p]")}. Luôn có <b>đúng một</b> kết quả.</div>`;
+  h+=`<div class="method">Cách 1 — Nhân 6 ma trận khâu <small>· trang 25–26</small></div><div class="fxbox fx">`+
+    LN(M("$T_6 = $A_1·$A_2·$A_3·$A_4·$A_5·$A_6"))+
+    TX("Mỗi "+F("$A_i")+" vẫn lấy từ một hàng của bảng thông số D–H bằng đúng công thức chung. Điểm mới duy nhất là hàng 3: khớp tịnh tiến nên θ₃ = 0 cố định và d₃ là biến — "+F("$A_3")+" chỉ còn là phép tịnh tiến dọc z₂:")+
+    LN(M("$A_3")+" = "+BM([["1","0","0","0"],["0","1","0","0"],["0","0","1",M("$d_3")],["0","0","0","1"]],true,true))+
+    TX(F("$d_2")+" là độ lệch vai: khâu 2 nằm lệch sang bên một đoạn d₂ so với trục thân — trên hình là đoạn xanh ngang vai.")+`</div>`;
+  h+=`<div class="method">Cách 2 — Công thức đóng của giáo trình <small>· trang 27</small></div><div class="fxbox fx">`+
+    LN(M("$d_x = $c_1$s_2$d_3 − $s_1$d_2 + $d_6($c_1$c_2$c_4$s_5 + $c_1$c_5$s_2 − $s_1$s_4$s_5)")+" = <b>"+fN(C.dx)+"</b>")+
+    LN(M("$d_y = $s_1$s_2$d_3 + $c_1$d_2 + $d_6($c_1$s_4$s_5 + $c_2$c_4$s_1$s_5 + $c_5$s_1$s_2)")+" = <b>"+fN(C.dy)+"</b>")+
+    LN(M("$d_z = $c_2$d_3 + $d_6($c_2$c_5 − $c_4$s_2$s_5)")+" = <b>"+fN(C.dz)+"</b>")+
+    LN(M("$r_13 = $c_1($c_2$c_4$s_5 + $s_2$c_5) − $s_1$s_4$s_5")+" = "+fN(C.r13)+",&ensp;"+M("$r_33 = −$s_2$c_4$s_5 + $c_2$c_5")+" = "+fN(C.r33))+
+    TX("Bỏ phần d₆ (bàn tay) thì còn "+F("($c_1$s_2$d_3 − $s_1$d_2, $s_1$s_2$d_3 + $c_1$d_2, $c_2$d_3)")+": <b>một vectơ dài d₃ theo hướng (θ₁, θ₂) cộng độ lệch vai d₂</b> — robot Stanford về bản chất là tay tọa độ cầu có vai lệch.")+
+    TX("<b>Hai dòng in sai ở trang 27</b> (đã thay số đối chiếu với tích ma trận): "+F("$r_11")+" in số hạng cuối là "+F("− $d_2($s_4$c_5$c_6 + $c_4$s_6)")+", đúng phải là "+F("− $s_1($s_4$c_5$c_6 + $c_4$s_6)")+"; "+
+      F("$r_22")+" in "+F("−$s_1[…]")+", đúng phải là "+F("+$s_1[…]")+".")+`</div>`;
+  h+=`<div class="fxbox fx" style="margin-top:8px">`+TX("Đối chiếu hai cách với bộ biến khớp hiện tại:")+
+    LN("tích ma trận:&ensp;"+M("$p")+" = ("+fN(p[0])+", "+fN(p[1])+", "+fN(p[2])+")")+
+    LN("công thức đóng: "+M("$p")+" = ("+fN(C.dx)+", "+fN(C.dy)+", "+fN(C.dz)+")&emsp;"+
+      (dif<1e-9?'<span class="good">✓ trùng nhau (kể cả r₁₁, r₂₂ đã sửa)</span>':'<span class="fail">✗ lệch '+fN(dif,6)+'</span>'))+`</div>`;
+  return h;}
+
+function stIkExplainHTML(){const chips=[["Cho T₆ = [n o a p]",""],["W = p − d₆·a",""],["r ≥ d₂ ? — sai ⇒ vô nghiệm","q"],["θ₁ (4-29), hai dấu vai",""],
+  ["θ₂ (4-30)",""],["d₃ (4-32)",""],["d₃ trong hành trình ?","q"],["θ₄ (4-33), θ₅ (4-34)",""],["θ₆ (4-36)",""],["Kiểm tra bằng ĐH thuận",""]];
+  return `<div class="method first">Vì sao giải tay được?</div><div class="fxbox">`+
+    TX("Giống ELBOW, ba trục cổ tay 4, 5, 6 <b>cắt nhau tại một điểm W</b>. Vị trí của W chỉ phụ thuộc θ₁, θ₂, d₃; hướng bàn tay do θ₄, θ₅, θ₆ lo. Bài 6 ẩn tách thành hai bài 3 ẩn.")+
+    TX("Ba khớp đầu của Stanford là <b>tọa độ cầu</b>: θ₁ quay thân, θ₂ ngẩng tay, d₃ thò tay ra — nên phần vị trí giải gọn hơn ELBOW, không cần định lý cos.")+`</div>`+
+    `<div class="method">Trình tự của giáo trình (4-24 → 4-36)</div><div class="fxbox">`+
+    TX("Nhân hai vế "+F("$T_6 = $A_1…$A_6")+" lần lượt với "+F("$A_1⁻¹")+", "+F("$A_2⁻¹")+", … Mỗi lần nhân, tìm phần tử ở vế phải <b>chỉ chứa một ẩn</b> (hoặc là hằng số) rồi cân bằng với vế trái:")+
+    TX("<b>① θ₁</b> — hàng 3 cột 4 của "+F("$A_1⁻¹$T_6")+" bằng hằng số: "+F("−$S_1$p_x + $C_1$p_y = $d_2")+". Đặt "+F("$p_x = $rcosΦ")+", "+F("$p_y = $rsinΦ")+" ⇒ "+F("sin(Φ − $θ_1) = $d_2/$r")+" (4-29).")+
+    TX("<b>② θ₂, d₃</b> — hàng 1, 2 cột 4 cho "+F("$S_2$d_3 = $C_1$p_x + $S_1$p_y")+", "+F("$C_2$d_3 = $p_z")+" ⇒ θ₂ (4-30); hàng 3 cột 4 của "+F("$A_2⁻¹$A_1⁻¹$T_6")+" ⇒ d₃ (4-32).")+
+    TX("<b>③ θ₄, θ₅, θ₆</b> — cân bằng các phần tử của vectơ a rồi vectơ o trong (4-31) và (4-35).")+
+    TX("<b>Lưu ý:</b> slide viết ¹T₆ với cột p = (S₂d₃, −C₂d₃, d₂), tức là đã coi d₆ = 0. Robot có bàn tay dài d₆ thì ① ② phải áp cho <b>tâm cổ tay W = p − d₆·a</b>, không phải cho p.")+`</div>`+
+    `<div class="method">Vì sao có bốn nghiệm — và khi nào không có?</div><div class="fxbox">`+
+    TX("Hai chỗ có dấu ±: <b>vai</b> (±√(1 − (d₂/r)²) trong 4-29: vai phải hay vai trái) và <b>cổ tay</b> (θ₄ hoặc θ₄ + 180°, kéo theo θ₅ đổi dấu, θ₆ + 180°) ⇒ 2×2 = <b>4 bộ nghiệm</b>. θ₂ không có dấu ± vì slide chọn sẵn d₃ > 0.")+
+    TX("<b>Vô nghiệm toán học</b> khi "+F("$r < $d_2")+": tâm cổ tay lọt vào <b>mặt trụ bán kính d₂</b> quanh trục thân (vòng tím trên hình) — vai lệch nên tay không bao giờ quét qua vùng đó.")+
+    TX("<b>Có nghiệm toán học nhưng không có nghiệm vật lý</b> khi d₃ tính ra nằm ngoài hành trình ["+ST_D3.join(", ")+"]: công thức vẫn cho số, nhưng cần trượt không dài hoặc ngắn tới vậy. Robot ELBOW toàn khớp quay không minh họa được điều này.")+`</div>`+
+    `<div class="method">Quy trình tóm tắt</div><div class="flow">`+
+    chips.map(([t,c])=>`<span class="chip${c?" "+c:""}">${t}</span>`).join('<span class="arr">→</span>')+`</div>`;}
+
+function stIkHTML(){const d=stIK(S.st.br),a=d.a,o=d.o,p=d.p,W=d.W,sg=s=>s>0?"+1":"−1",hd="["+ST_D3.join(", ")+"]";
+  let h=`<div class="task">Bài toán: biết tư thế bàn tay ${F("$T_6 = [n o a p]")} → tìm ${F("$θ_1, $θ_2, $d_3, $θ_4, $θ_5, $θ_6")}. Có <b>4 nghiệm</b> (vai × cổ tay); <b>vô nghiệm</b> nếu tâm cổ tay lọt vào mặt trụ bán kính d₂; chỉ là <b>nghiệm toán học</b> nếu d₃ vượt hành trình.</div>`;
+  h+=`<div class="fxbox fx">`+TX("Tư thế đích hiện tại — đổi bằng thanh trượt bên trái:")+
+    LN(M("$p")+" = ("+fN(p[0])+", "+fN(p[1])+", "+fN(p[2])+")&emsp;"+M("$a")+" = ("+fN(a[0])+", "+fN(a[1])+", "+fN(a[2])+")")+
+    LN(M("$o")+" = ("+fN(o[0])+", "+fN(o[1])+", "+fN(o[2])+")&emsp;nhánh: vai "+sg(d.br.sh)+" · cổ tay "+sg(d.br.wr))+`</div>`;
+  h+=`<div class="method">Bước 0 — Tâm cổ tay W</div><div class="fxbox fx">`+
+    LN(M("$W = $p − $d_6·$a")+" = ("+fN(W[0])+", "+fN(W[1])+", "+fN(W[2])+")")+`</div>`;
+  h+=`<div class="method">Bước 1 — θ₁ (4-29)</div><div class="fxbox fx">`+
+    LN(M("$r = √($W_x² + $W_y²)")+" = "+fN(d.r)+",&ensp;Φ = atan2("+M("$W_y, $W_x")+") = "+fD(d.Phi))+
+    (d.ok?LN(M("$θ_1 = Φ − atan2($d_2, ±√($r² − $d_2²))")+" = "+fD(d.Phi)+" − atan2("+fN(d.d2,2)+", "+fN(d.rho)+") = <b>"+fD(d.th1)+"</b>")
+      :TX('<span class="fail">r = '+fN(d.r)+" < d₂ = "+fN(d.d2,2)+" ⇒ sin(Φ − θ₁) = d₂/r > 1: vô nghiệm.</span> Tâm cổ tay nằm trong mặt trụ bán kính d₂ quanh trục thân."))+`</div>`;
+  if(!d.ok)return h;
+  h+=`<div class="method">Bước 2 — θ₂ (4-30) và d₃ (4-32)</div><div class="fxbox fx">`+
+    LN(M("$C_1$W_x + $S_1$W_y")+" = "+fN(d.u)+"&emsp;"+M("$W_z")+" = "+fN(W[2]))+
+    LN(M("$θ_2 = atan2($C_1$W_x + $S_1$W_y, $W_z)")+" = <b>"+fD(d.th2)+"</b>")+
+    LN(M("$d_3 = $S_2($C_1$W_x + $S_1$W_y) + $C_2$W_z")+" = <b"+(d.phys?"":' class="fail"')+">"+fN(d.d3)+"</b>&emsp;"+
+      (d.phys?'<span class="good">✓ trong hành trình '+hd+"</span>":'<span class="fail">✗ ngoài hành trình '+hd+" — chỉ là nghiệm toán học</span>"))+`</div>`;
+  if(!d.phys)return h;
+  h+=`<div class="method">Bước 3 — θ₄ (4-33), θ₅ (4-34), θ₆ (4-36)</div><div class="fxbox fx">`+
+    LN(M("$θ_4 = atan2(−$S_1$a_x + $C_1$a_y, $C_2($C_1$a_x + $S_1$a_y) − $S_2$a_z)")+(d.br.wr<0?" + 180°":"")+" = <b>"+fD(d.th4)+"</b>")+
+    LN(M("$θ_5 = atan2($S_5, $C_5)")+" với "+M("$S_5")+" = "+fN(d.S5)+", "+M("$C_5")+" = "+fN(d.C5)+" ⇒ <b>"+fD(d.th5)+"</b>")+
+    LN(M("$θ_6 = atan2($S_6, $C_6)")+" với "+M("$S_6")+" = "+fN(d.S6)+", "+M("$C_6")+" = "+fN(d.C6)+" ⇒ <b>"+fD(d.th6)+"</b>")+
+    TX("<b>Lưu ý:</b> (4-33) in ở trang 34 có "+F("+ $S_2$a_z")+" — thay số thì θ₄ không khớp động học thuận. Dấu đúng là "+F("− $S_2$a_z")+", đúng như dòng "+F("$C_4$S_5 = $C_2($C_1$a_x + $S_1$a_y) − $S_2$a_z")+" ở trang 35.")+
+    (Math.abs(d.s5)<0.05?TX('<span class="fail">θ₅ ≈ 0: kỳ dị cổ tay</span> — trục 4 trùng trục 6, chỉ tổng θ₄ + θ₆ có ý nghĩa (trang 35).'):"")+`</div>`;
+  h+=`<div class="fxbox fx" style="margin-top:8px">`+TX("Kiểm tra: thế 6 biến khớp vừa tìm vào bảng thông số D–H rồi nhân ra T₆")+
+    LN(M("$p")+" = ("+fN(d.pv[0])+", "+fN(d.pv[1])+", "+fN(d.pv[2])+")&emsp;"+
+      (d.err<1e-6&&d.errR<1e-6?'<span class="good">✓ trùng tư thế đích</span>':'<span class="fail">✗ lệch '+fN(Math.max(d.err,d.errR),6)+"</span>"))+`</div>`;
+  return h;}
+
+// ---------- thẻ từng bước của Stanford ----------
+function stStepListHTML(ids,lim){let h="",ph=-1;
+  ids.forEach((id,i)=>{const m=ST_STEPM[id];
+    if(m.ph!==ph){h+=(ph>=0?"</div></div>":"")+`<div class="sgroup"><div class="sgt">${EL_PHASES[m.ph]}</div><div class="spills">`;ph=m.ph;}
+    const c=i===S.st.step?" cur":i<S.st.step?" done":"";
+    h+=`<button class="spill${c}" data-st="${i}"${i>lim?" disabled":""}><span class="k">${i+1}</span>${m.s}</button>`;});
+  return h+"</div></div>";}
+function stStepHTML(ids,d){const id=ids[S.st.step],m=ST_STEPM[id],p=d.p,a=d.a,W=d.W,hd="["+ST_D3.join(", ")+"]";
+  const box=c=>`<div class="fxbox fx">${c}</div>`,goal=t=>`<div class="task">${t}</div>`;
+  const fig=t=>`<div class="onfig"><b>Trên hình:</b> ${t}</div>`;
+  let h=`<div class="shead"><div class="sph">${EL_PHASES[m.ph]}</div><div class="stitle">Bước ${S.st.step+1}/${ids.length} — ${m.t}</div></div>`;
+  if(id==="dh")h+=goal("Robot Stanford: mọi aᵢ = 0, các chiều dài nằm ở cột d. Hàng 3 là khớp tịnh tiến — ẩn của hàng này là d₃ chứ không phải θ₃.")+
+    `<table class="dh"><thead><tr><th>Khâu i</th><th>aᵢ</th><th>αᵢ</th><th>dᵢ</th><th>θᵢ</th></tr></thead><tbody>`+
+    [0,1,2,3,4,5].map(i=>i===2?`<tr><td>3</td><td>0</td><td>${ST_ALT[2]}</td><td class="th">d₃ = ?</td><td>0</td></tr>`
+      :`<tr><td>${i+1}</td><td>0</td><td>${ST_ALT[i]}</td><td>${i===1||i===5?fN(stDv(i),2):"0"}</td><td class="th">θ${SUBN[i]} = ?</td></tr>`).join("")+
+    `</tbody></table>`+box(TX("α₁ = −90° đặt trục khớp 2 nằm ngang; α₄ = −90° và α₅ = 90° tạo cổ tay cầu. d₂ là độ lệch vai, d₆ là chiều dài bàn tay, còn d₃ thay đổi khi cần trượt ra vào."))+
+    fig("robot ở tư thế θ = 0 của bảng, cần trượt thụt về d₃ = "+ST_D3[0]+"; kéo chuột để xoay góc nhìn.");
+  else if(id==="pose")h+=goal("Đích không chỉ là một điểm: cần cả hướng. T₆ có 6 thông tin độc lập — vừa đúng 6 biến khớp.")+
+    box(LN(M("$p")+" = ("+fN(p[0])+", "+fN(p[1])+", "+fN(p[2])+")")+
+      LN(M("$a")+" = ("+fN(a[0])+", "+fN(a[1])+", "+fN(a[2])+") — hướng tiếp cận, mũi tên trên hình")+
+      LN(M("$o")+" = ("+fN(d.o[0])+", "+fN(d.o[1])+", "+fN(d.o[2])+") — hướng mở bàn kẹp"))+
+    fig("chữ thập là p, mũi tên là vectơ tiếp cận a.");
+  else if(id==="wrist")h+=goal("Ba trục cổ tay cắt nhau tại W, cách bàn tay đúng d₆ dọc vectơ tiếp cận. Vị trí W chỉ phụ thuộc θ₁, θ₂, d₃ — giải W trước.")+
+    box(LN(M("$W = $p − $d_6·$a")+" = ("+fN(p[0])+", "+fN(p[1])+", "+fN(p[2])+") − "+fN(d.d6,2)+"·("+fN(a[0])+", "+fN(a[1])+", "+fN(a[2])+")")+
+      LN("&emsp;= <b>("+fN(W[0])+", "+fN(W[1])+", "+fN(W[2])+")</b>")+
+      TX("Slide viết ¹T₆ với cột p = (S₂d₃, −C₂d₃, d₂) — tức là coi d₆ = 0. Có bàn tay thì (4-29) → (4-32) phải áp cho W thay cho p."))+
+    fig("chấm tím W nối với đích bằng nét đứt dài d₆.");
+  else if(id==="th1")h+=goal("Hàng 3 cột 4 của A₁⁻¹T₆ là hằng số d₂: nhìn từ trên xuống, cánh tay luôn lệch khỏi trục thân đúng một đoạn d₂.")+
+    box(LN(M("−$S_1$W_x + $C_1$W_y = $d_2")+"&emsp;·&emsp;"+M("$r")+" = "+fN(d.r)+", Φ = "+fD(d.Phi))+
+      (d.ok?LN(M("sin(Φ − $θ_1) = $d_2/$r")+" = "+fN(d.d2/d.r)+"&emsp;"+M("cos(Φ − $θ_1) = ±√(1 − ($d_2/$r)²)"))+
+        LN(M("$θ_1 = atan2($W_y, $W_x) − atan2($d_2, ±√($r² − $d_2²))")+" = <b>"+fD(d.th1)+"</b>")+
+        TX("Nghiệm vai còn lại: θ₁ = "+fD(wrapPi(d.Phi-Math.atan2(d.d2,-d.rho)))+" — thân quay sang phía kia, cánh tay ngả ngược lại.")
+        :TX('<span class="fail">d₂/r = '+fN(d.d2/Math.max(d.r,1e-9))+" > 1 ⇒ vô nghiệm.</span> W nằm trong mặt trụ bán kính d₂ quanh trục thân — vòng đỏ trên hình.")))+
+    fig(d.ok?"thân vừa quay tới θ₁; vòng tím là mặt trụ bán kính d₂ ở độ cao của W.":"vòng đỏ là mặt trụ bán kính d₂; W đang nằm bên trong.");
+  else if(id==="th2")h+=goal("Hàng 1 và 2 cột 4 của A₁⁻¹T₆: trong mặt phẳng cánh tay, W nằm trên tia hướng θ₂, cách vai d₃.")+
+    box(LN(M("$S_2$d_3 = $C_1$W_x + $S_1$W_y")+" = "+fN(d.u)+"&emsp;"+M("$C_2$d_3 = $W_z")+" = "+fN(W[2]))+
+      LN(M("$θ_2 = atan2($C_1$W_x + $S_1$W_y, $W_z)")+" = <b>"+fD(d.th2)+"</b>")+
+      TX("Chia hai phương trình cho nhau thì d₃ biến mất; vì d₃ > 0 nên atan2 lấy thẳng hai vế phải — không có dấu ±."))+
+    fig("cánh tay vừa ngẩng tới θ₂, chĩa thẳng về phía W.");
+  else if(id==="d3")h+=goal("Hàng 3 cột 4 của A₂⁻¹A₁⁻¹T₆ cho độ vươn của khớp tịnh tiến.")+
+    box(LN(M("$d_3 = $S_2($C_1$W_x + $S_1$W_y) + $C_2$W_z")+" = <b"+(d.phys?"":' class="fail"')+">"+fN(d.d3)+"</b>")+
+      (d.phys?TX('<span class="good">✓ Nằm trong hành trình '+hd+"</span> — nghiệm toán học đồng thời là nghiệm vật lý.")
+        :TX('<span class="fail">✗ Ngoài hành trình '+hd+"</span>: công thức vẫn cho số, nhưng cần trượt "+(d.d3>ST_D3[1]?"không dài tới vậy":"không thụt ngắn tới vậy")+". Đây là <b>nghiệm toán học, không phải nghiệm vật lý</b> — robot dừng ở đây.")))+
+    fig(d.phys?"cần trượt thò ra, đầu cần đã chạm W.":"cần trượt đã "+(d.d3>ST_D3[1]?"duỗi hết cỡ mà vẫn chưa tới W":"thụt hết cỡ mà vẫn vượt quá W")+".");
+  else if(id==="th4")h+=goal("Vị trí xong. Hàng 3 cột 3 của ²T₆ (f₄₃(a) = 0) chọn θ₄ sao cho trục khớp 5 vuông góc với vectơ tiếp cận a — chỉ khi đó θ₅ mới nghiêng được bàn tay tới a.")+
+    box(LN(M("$θ_4 = atan2(−$S_1$a_x + $C_1$a_y, $C_2($C_1$a_x + $S_1$a_y) − $S_2$a_z)")+(d.br.wr<0?" + 180°":"")+" = <b>"+fD(d.th4)+"</b>")+
+      TX("Nghiệm cổ tay còn lại là θ₄ + 180° (θ₅ đổi dấu). Trang 34 in (4-33) với "+F("+ $S_2$a_z")+"; dấu đúng là "+F("−")+", đúng như dòng "+F("$C_4$S_5")+" ở trang 35."))+
+    fig("khớp 4 vừa xoay; hướng tiếp cận của bàn tay chưa đổi.");
+  else if(id==="th5")h+=goal("θ₅ nghiêng bàn tay quanh trục 5 cho tới khi trục tiếp cận trùng a.")+
+    box(LN(M("$S_5 = $C_4[$C_2($C_1$a_x + $S_1$a_y) − $S_2$a_z] + $S_4(−$S_1$a_x + $C_1$a_y)")+" = "+fN(d.S5))+
+      LN(M("$C_5 = $S_2($C_1$a_x + $S_1$a_y) + $C_2$a_z")+" = "+fN(d.C5))+
+      LN(M("$θ_5 = atan2($S_5, $C_5)")+" = <b>"+fD(d.th5)+"</b>")+
+      TX((Math.abs(d.s5)<0.05?'<span class="fail">θ₅ ≈ 0 — kỳ dị cổ tay.</span> ':"")+"Khi S₅ = 0, trục 4 và trục 6 thẳng hàng: chỉ tổng θ₄ + θ₆ có ý nghĩa, θ₄ chọn tự do (thường giữ giá trị hiện hành)."))+
+    fig("vectơ tiếp cận của bàn tay đã trùng mũi tên a.");
+  else if(id==="th6")h+=goal("Cuối cùng xoay quanh chính trục tiếp cận cho khớp với vectơ o — cân bằng hàng 1 và 2 cột 2 của (4-35).")+
+    box(LN(M("$S_6 = −$C_5{$C_4[$C_2($C_1$O_x + $S_1$O_y) − $S_2$O_z] + $S_4(−$S_1$O_x + $C_1$O_y)} + $S_5[$S_2($C_1$O_x + $S_1$O_y) + $C_2$O_z]")+" = "+fN(d.S6))+
+      LN(M("$C_6 = −$S_4[$C_2($C_1$O_x + $S_1$O_y) − $S_2$O_z] + $C_4(−$S_1$O_x + $C_1$O_y)")+" = "+fN(d.C6))+
+      LN(M("$θ_6 = atan2($S_6, $C_6)")+" = <b>"+fD(d.th6)+"</b>"))+
+    fig("bộ ba trục ở bàn tay đã trùng với hướng đích.");
+  else if(id==="check")h+=goal("Thế 6 biến khớp vừa tìm vào bảng thông số D–H, nhân ra T₆ và so với tư thế đích.")+
+    box(LN("q = ("+d.q.map((v,i)=>i===2?fN(v,3):fD(v)).join(", ")+")")+
+      LN(M("$p")+" tính lại = ("+fN(d.pv[0])+", "+fN(d.pv[1])+", "+fN(d.pv[2])+")")+
+      LN("sai số vị trí = "+fN(d.err,6)+", sai số hướng = "+fN(d.errR,6)+"&emsp;"+
+        (d.err<1e-6&&d.errR<1e-6?'<span class="good">✓ đạt</span>':'<span class="fail">✗ lệch</span>')))+
+    `<div class="mat" style="margin-top:8px">${matHTML(d.Tv,true)}</div>`;
+  else if(id==="brs"){const rows=[];
+    [1,-1].forEach(sh=>[1,-1].forEach(wr=>{const s=stIK({sh,wr}),cur=sh===S.st.br.sh&&wr===S.st.br.wr;
+      rows.push(`<tr${cur?' class="cur"':""}><td>${sh>0?"phải":"trái"}</td><td>${wr>0?"thuận":"lật"}</td><td>`+
+        (!s.ok?'<span class="fail">vô nghiệm</span>':s.q.map((v,i)=>i===2?fN(v,2):fN(v*R2D,0)).join(", ")+(s.phys?"":' <span class="fail">(d₃ ngoài hành trình)</span>'))+`</td></tr>`);}));
+    h+=goal("Hai dấu ± độc lập nhau ⇒ 4 bộ biến khớp cho cùng một tư thế bàn tay.")+
+      `<table class="dh"><thead><tr><th>Vai</th><th>Cổ tay</th><th>θ₁, θ₂ (°), d₃, θ₄, θ₅, θ₆ (°)</th></tr></thead><tbody>`+rows.join("")+`</tbody></table>`+
+      box(TX("Hai nghiệm vai cho cùng W nên cùng d₃ = √(r² − d₂² + W_z²): một nghiệm vượt hành trình thì nghiệm kia cũng vượt. Đổi nhánh bằng hai nút Vai / Cổ tay ở thẻ Chế độ mô phỏng."));}
+  return h;}
+
+// ---------- điều khiển từng bước cho Stanford ----------
+let stTimer=0;
+function stStepGo(i,anim){const ids=stStepIds(),d=stIK(S.st.br);
+  S.st.step=Math.max(0,Math.min(i,stStepLimit(d)));
+  const to=stStepPose(ids[S.st.step],d);
+  if(anim){S.st.anim={from:S.st.q.slice(),to,t0:performance.now(),dur:800};
+    if(!S.st.raf)S.st.raf=requestAnimationFrame(stStepTick);}
+  else{S.st.anim=null;S.st.q=to.slice();render();}
+  stSchedule();}
+function stStepTick(now){S.st.raf=0;const A=S.st.anim;if(!A||S.mode!=="ik"||S.robot!=="stanford")return;
+  const t=Math.min(1,(now-A.t0)/A.dur),e=t<0.5?2*t*t:1-2*(1-t)*(1-t);
+  if(t<1){S.st.q=A.from.map((v,i)=>v+(i===2?A.to[2]-v:wrapPi(A.to[i]-v))*e);S.st.raf=requestAnimationFrame(stStepTick);}   // d₃ nội suy thẳng, không quấn góc
+  else{S.st.q=A.to.slice();S.st.anim=null;}
+  render();}
+function stSchedule(){clearTimeout(stTimer);if(!S.stepPlay)return;
+  if(S.st.step>=stStepLimit(stIK(S.st.br))){S.stepPlay=false;document.getElementById("stPlay").textContent="▶ Tự chạy";return;}
+  stTimer=setTimeout(()=>{if(S.stepPlay&&S.mode==="ik")stStepGo(S.st.step+1,true);},4200);}
+function stStepPanels(){const ids=stStepIds(),d=stIK(S.st.br),lim=stStepLimit(d);
+  setHTML("stepList",stStepListHTML(ids,lim));setHTML("stepBody",stStepHTML(ids,d));
+  document.getElementById("stFirst").disabled=S.st.step===0;document.getElementById("stPrev").disabled=S.st.step===0;
+  document.getElementById("stNext").disabled=S.st.step>=lim;document.getElementById("stLast").disabled=S.st.step>=lim;
+  document.getElementById("stCount").textContent=(S.st.step+1)+" / "+ids.length;
+  const b=document.getElementById("stReach"),good=d.ok&&d.phys;
+  b.textContent=!d.ok?"Vô nghiệm":good?"Trong tầm với":"d₃ vượt hành trình";b.className="badge "+(good?"ok":"bad");
+  syncStSliders();}
+
+// ---------- thanh trượt cho Stanford ----------
+function retargetSt(){if(S.mode==="ik")stStepGo(S.st.step,false);else render();}
+function syncStSliders(){document.querySelectorAll("#sliders input[data-stq]").forEach(inp=>{const i=+inp.dataset.stq,pr=i===2;
+  const v=pr?S.st.q[2]:S.st.q[i]*R2D;inp.value=v;inp.parentNode.querySelector(".val").textContent=pr?v.toFixed(2):v.toFixed(0)+"°";});}
+function buildSlidersSt(){const box=document.getElementById("sliders");box.innerHTML="";
+  const dis=S.mode!=="fk",cc=["","c2","c3","","",""];
+  for(let i=0;i<6;i++){const el=i===2
+      ?sEl("d₃ (tịnh tiến)",ST_D3[0],ST_D3[1],S.st.q[2],"","c3",v=>{S.st.q[2]=v;render();},dis,0.01)   // khớp tịnh tiến: thanh trượt đo chiều dài
+      :sEl("θ"+SUBN[i],-180,180,S.st.q[i]*R2D,"°",cc[i],v=>{S.st.q[i]=v*D2R;render();},dis);
+    el.querySelector("input").dataset.stq=i;box.appendChild(el);}
+  box.appendChild(sEl("d₂ (vai lệch)",0,0.6,S.st.d2,"","",v=>{S.st.d2=v;retargetSt();},false,0.05));
+  box.appendChild(sEl("d₆ (bàn tay)",0.05,0.6,S.st.d6,"","",v=>{S.st.d6=v;retargetSt();},false,0.05));
+  if(S.mode!=="fk"){const t=S.st.tgt;
+    if(S.mode!=="traj"){
+      box.appendChild(sEl("đích x",-2,2,t.x,"","cp",v=>{t.x=v;retargetSt();},false,0.05));
+      box.appendChild(sEl("đích y",-2,2,t.y,"","cp",v=>{t.y=v;retargetSt();},false,0.05));
+      box.appendChild(sEl("đích z",-1.4,1.8,t.z,"","cp",v=>{t.z=v;retargetSt();},false,0.05));}
+    box.appendChild(sEl("tiếp cận — phương vị",-180,180,t.az*R2D,"°","",v=>{t.az=v*D2R;retargetSt();}));
+    box.appendChild(sEl("tiếp cận — chúc",-90,90,t.el*R2D,"°","",v=>{t.el=v*D2R;retargetSt();}));
+    box.appendChild(sEl("xoay quanh tiếp cận",-180,180,t.roll*R2D,"°","",v=>{t.roll=v*D2R;retargetSt();}));}
+  if(S.mode==="jac"){
+    box.appendChild(sEl("α (hệ số học)",0.05,1,S.jac.alpha,"","",v=>{S.jac.alpha=v;updatePanels();},false,0.05));
+    box.appendChild(sEl("λ (DLS)",0.01,0.4,S.jac.lam,"","",v=>{S.jac.lam=v;updatePanels();},false,0.01));}}
+function stPreset(){S.st.d2=0.3;S.st.d6=0.3;S.st.br={sh:1,wr:1};                // nút Reset của thẻ từng bước
+  Object.assign(S.st.tgt,{x:0.9,y:0.45,z:0.25,az:20*D2R,el:-35*D2R,roll:0});
+  stLabels();buildSliders();stStepGo(0,false);}
+
+// ---------- quỹ đạo Stanford: nội suy thẳng trong không gian Đề-các, hướng tiếp cận giữ nguyên ----------
+function stBuildShape(name){
+  if(name==="line")return [[[1.0,-0.6,-0.25],[1.0,0.6,0.55]]];
+  if(name==="circle"){const c=[1.0,0,0.15],R=0.35,n=48,st=[];
+    for(let i=0;i<=n;i++){const a=2*Math.PI*i/n;st.push([c[0],c[1]+R*Math.cos(a),c[2]+R*Math.sin(a)]);}
+    return [st];}
+  return null;}
+function stSetShape(name){const tr=S.st.tr;tr.shape=name;tr.strokes=stBuildShape(name);
+  tr.samples=elBuildSamples(tr.strokes,34);tr.idx=0;tr.trail=[];stTrajStop();markShape(name);render();}
+function stTrajStop(){S.st.tr.playing=false;document.getElementById("trajPlay").textContent="▶ Chạy";}
+function stTrajToggle(){const tr=S.st.tr;if(!tr.samples.length)stSetShape("line");
+  tr.playing=!tr.playing;document.getElementById("trajPlay").textContent=tr.playing?"⏸ Dừng":"▶ Chạy";
+  if(tr.playing){if(tr.idx>=tr.samples.length){tr.idx=0;tr.trail=[];}stAnimate();}}
+function stAnimate(){const tr=S.st.tr;if(!tr.playing||S.mode!=="traj"||S.robot!=="stanford")return;
+  if(tr.idx>=tr.samples.length){stTrajStop();render();return;}
+  const p=tr.samples[tr.idx++];S.st.tgt.x=p[0];S.st.tgt.y=p[1];S.st.tgt.z=p[2];
+  const d=stIK(S.st.br),good=d.ok&&d.phys;                          // vô nghiệm hoặc d₃ vượt hành trình: nhấc bút, giữ tư thế cũ
+  if(good)S.st.q=d.q;
+  tr.trail.push({p,pen:good});
+  syncStSliders();render();requestAnimationFrame(stAnimate);}
+function stTraj3(out){const tr=S.st.tr;
+  if(tr.strokes)for(const st of tr.strokes)for(let i=0;i<st.length-1;i++)
+    out.push(seg3(st[i],st[i+1],"rgba(94,118,144,.7)",1.8,[6,4]));
+  for(let i=0;i<tr.trail.length-1;i++)if(tr.trail[i].pen&&tr.trail[i+1].pen)
+    out.push(seg3(tr.trail[i].p,tr.trail[i+1].p,EL_PEN,3.4));}
+
+// ---------- Jacobian 6×6 của Stanford: khớp quay [zᵢ₋₁ × (p₆ − pᵢ₋₁) ; zᵢ₋₁], khớp tịnh tiến 3 là [z₂ ; 0] ----------
+function jacSt(q){const T=stFK(q).T,pe=org(T[6]),J=[[],[],[],[],[],[]];
+  for(let i=0;i<6;i++){const z=zax(T[i]),c=v3.crs(z,v3.sub(pe,org(T[i])));
+    (i===2?[z[0],z[1],z[2],0,0,0]:[c[0],c[1],c[2],z[0],z[1],z[2]]).forEach((v,r)=>J[r].push(v));}
+  return J;}
+function jacStState(){const tg=tgtPose(S.st.tgt),T=stFK(S.st.q).T[6],p=org(T);
+  const Rd=[[tg.n[0],tg.o[0],tg.a[0]],[tg.n[1],tg.o[1],tg.a[1]],[tg.n[2],tg.o[2],tg.a[2]]];
+  const eo=rotErr(Rd,T),ep=v3.sub(tg.p,p);
+  return {J:jacSt(S.st.q),e:[ep[0],ep[1],ep[2],eo[0],eo[1],eo[2]],p,np:v3.len(ep),no:v3.len(eo)};}
+
+// ---------- nút nhánh nghiệm & góc nhìn của Stanford ----------
+function stLabels(){const b=S.st.br;
+  document.getElementById("stSh").textContent="Vai: "+(b.sh>0?"phải":"trái");
+  document.getElementById("stWr").textContent="Cổ tay: "+(b.wr>0?"thuận":"lật");}
+[["stSh","sh"],["stWr","wr"]].forEach(([id,k])=>document.getElementById(id).onclick=()=>{S.st.br[k]*=-1;stLabels();stStepGo(S.st.step,false);});
+document.getElementById("stView").onclick=()=>{S.st.yaw=-50*D2R;S.st.pitch=20*D2R;S.st.zoom=1;render();};
+
+buildDHFormulas();brLabels();stLabels();setShape("circle");setDof(2);
+</script>
+</body>
+</html>
