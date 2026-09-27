@@ -34,7 +34,7 @@
   .htag{font:11.5px var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
     border:1px solid var(--rule);border-radius:2px;padding:4px 9px;background:var(--surface);}
   .wrap{display:flex;flex-wrap:wrap;gap:16px;padding:16px;align-items:flex-start;}
-  .left{flex:0 1 auto;min-width:0;display:flex;flex-direction:column;gap:14px;}
+  .left{flex:0 1 auto;min-width:0;display:flex;flex-direction:column;gap:14px;max-width:682px;}   /* = khung hình 660 + lề: thẻ D–H dời sang đây không làm cột nở ra */
   .stage{background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:10px;}
   canvas{display:block;border-radius:2px;background:var(--surface);touch-action:none;cursor:crosshair;}
   .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);padding:6px 6px 2px;}
@@ -163,6 +163,17 @@
     padding:6px 10px;margin-top:8px;line-height:1.55;}
   table.dh td.unk{color:var(--amber);font-weight:700;}
   .elem .tx{font-size:12px;}
+  /* ---- tính toán quỹ đạo ---- */
+  .plot{margin:6px 0;line-height:0;} .plot svg{width:100%;height:auto;display:block;}
+  .plotleg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin:2px 0 4px;}
+  .plotleg i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:5px;}
+  .plotleg i.d{height:0;border-top:2px dashed currentColor;}
+  table.dh.num td{font-size:12px;} table.dh.num td:first-child{font-weight:600;}
+  .codebar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;}
+  .codebar .grow{flex:1;}
+  pre.code{font:12px/1.5 var(--mono);background:var(--ink);color:#E8EAE3;border-radius:2px;padding:10px 12px;
+    overflow:auto;max-height:460px;margin:6px 0 0;tab-size:4;}
+  pre.code .cm{color:#A9B0A3;font-style:italic;} pre.code .st{color:#F2C84B;}
   footer{padding:12px 22px;border-top:1px solid var(--rule);background:var(--ground);
     display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;}
   footer .l{font-size:12.5px;color:var(--ink);font-weight:600;}
@@ -192,6 +203,51 @@
     <div class="card">
       <div class="eyebrow">Biến khớp &amp; kích thước khâu</div>
       <div id="sliders"></div>
+    </div>
+
+    <div class="card" id="dhCard">
+      <div class="eyebrow">Bảng thông số D–H (sửa trực tiếp)</div>
+      <table class="dh">
+        <thead><tr><th>Khâu i</th><th>aᵢ</th><th>αᵢ</th><th>dᵢ</th><th>θᵢ* (°)</th></tr></thead>
+        <tbody id="dhbody"></tbody>
+      </table>
+      <p class="hint" style="margin-top:6px"><b>aᵢ</b>: khoảng cách theo x · <b>αᵢ</b>: góc quay quanh x&emsp;|&emsp;<b>dᵢ</b>: khoảng cách theo z · <b>θᵢ</b>: góc quay quanh z<br>* θᵢ là biến của khớp quay; aᵢ, αᵢ, dᵢ là hằng số của khâu. Khớp tịnh tiến (khớp 3 của robot Stanford) thì ngược lại: dᵢ là biến, θᵢ cố định.</p>
+      <details open style="margin-top:10px">
+        <summary>Nhắc lại 4 thông số D–H</summary>
+        <ul>
+          <li><b>a</b> — chiều dài khâu: khoảng cách theo xᵢ.</li>
+          <li><b>α</b> — góc xoắn khâu: góc quay quanh xᵢ.</li>
+          <li><b>d</b> — độ lệch khâu: khoảng cách theo z₍ᵢ₋₁₎.</li>
+          <li><b>θ</b> — góc khớp: góc quay quanh z₍ᵢ₋₁₎ <i>(biến khớp quay)</i>.</li>
+          <li>Robot phẳng ⇒ <b>α = 0, d = 0</b>; chỉ còn θ là biến.</li>
+        </ul>
+      </details>
+      <details open style="margin-top:10px">
+        <summary>Nền tảng: ma trận quay cơ bản → ma trận thuần nhất</summary>
+        <div id="rotBase"></div>
+      </details>
+      <details open style="margin-top:10px">
+        <summary>Công thức D–H: từ một hàng của bảng → ma trận khâu Aᵢ</summary>
+        <div class="fxbox fx" id="dhGeneral"></div>
+        <div class="method" id="dhPlanarLbl">Robot phẳng</div>
+        <div class="fxbox fx" id="dhPlanar"></div>
+        <div class="method" id="dhSubLbl">Thay số từng hàng của bảng</div>
+        <div class="fxbox fx" id="dhsub"></div>
+      </details>
+    </div>
+
+    <div class="card" id="matCard">
+      <div class="eyebrow">Ma trận thuần nhất</div>
+      <details open>
+        <summary>Ma trận từng khâu  Aᵢ</summary>
+        <div class="amx" id="amx" style="margin-top:10px"></div>
+      </details>
+      <div style="font-family:var(--mono);font-size:12.5px;font-weight:600;margin:12px 0 5px;color:var(--ink)">
+        T = A₁·A₂<span id="a3lbl">·A₃</span>
+      </div>
+      <div class="mat" id="tmat"></div>
+      <div class="pose" id="poseRow"></div>
+      <p class="hint">Cột tịnh tiến của <b>T</b> (màu cam) = tọa độ bàn tay trên hình — cầu nối giữa bảng thông số D–H và chuyển động thực. Nhân A₁·A₂·A₃ ra đúng cột đó — xem từng bước ở thẻ “Cách tính động học thuận”.</p>
     </div>
   </div>
 
@@ -236,6 +292,7 @@
       </div>
       <div class="rowbtns" id="trajctrl" style="display:none">
         <button class="btn" data-shape="line">Đường thẳng</button>
+        <button class="btn" data-shape="p2p" data-planaronly title="Nội suy trong không gian khớp giữa hai đầu mút của đường thẳng">Điểm → điểm (khớp)</button>
         <button class="btn" data-shape="circle">Đường tròn</button>
         <button class="btn" data-shape="star" data-planaronly>Ngôi sao</button>
         <button class="btn" data-shape="word" data-planaronly>Viết “ARM”</button>
@@ -261,51 +318,6 @@
       <div id="stepBody"></div>
     </div>
 
-    <div class="card">
-      <div class="eyebrow">Bảng thông số D–H (sửa trực tiếp)</div>
-      <table class="dh">
-        <thead><tr><th>Khâu i</th><th>aᵢ</th><th>αᵢ</th><th>dᵢ</th><th>θᵢ* (°)</th></tr></thead>
-        <tbody id="dhbody"></tbody>
-      </table>
-      <p class="hint" style="margin-top:6px"><b>aᵢ</b>: khoảng cách theo x · <b>αᵢ</b>: góc quay quanh x&emsp;|&emsp;<b>dᵢ</b>: khoảng cách theo z · <b>θᵢ</b>: góc quay quanh z<br>* θᵢ là biến của khớp quay; aᵢ, αᵢ, dᵢ là hằng số của khâu. Khớp tịnh tiến (khớp 3 của robot Stanford) thì ngược lại: dᵢ là biến, θᵢ cố định.</p>
-      <details open style="margin-top:10px">
-        <summary>Nhắc lại 4 thông số D–H</summary>
-        <ul>
-          <li><b>a</b> — chiều dài khâu: khoảng cách theo xᵢ.</li>
-          <li><b>α</b> — góc xoắn khâu: góc quay quanh xᵢ.</li>
-          <li><b>d</b> — độ lệch khâu: khoảng cách theo z₍ᵢ₋₁₎.</li>
-          <li><b>θ</b> — góc khớp: góc quay quanh z₍ᵢ₋₁₎ <i>(biến khớp quay)</i>.</li>
-          <li>Robot phẳng ⇒ <b>α = 0, d = 0</b>; chỉ còn θ là biến.</li>
-        </ul>
-      </details>
-      <details open style="margin-top:10px">
-        <summary>Nền tảng: ma trận quay cơ bản → ma trận thuần nhất</summary>
-        <div id="rotBase"></div>
-      </details>
-      <details open style="margin-top:10px">
-        <summary>Công thức D–H: từ một hàng của bảng → ma trận khâu Aᵢ</summary>
-        <div class="fxbox fx" id="dhGeneral"></div>
-        <div class="method" id="dhPlanarLbl">Robot phẳng</div>
-        <div class="fxbox fx" id="dhPlanar"></div>
-        <div class="method" id="dhSubLbl">Thay số từng hàng của bảng</div>
-        <div class="fxbox fx" id="dhsub"></div>
-      </details>
-    </div>
-
-    <div class="card">
-      <div class="eyebrow">Ma trận thuần nhất</div>
-      <details open>
-        <summary>Ma trận từng khâu  Aᵢ</summary>
-        <div class="amx" id="amx" style="margin-top:10px"></div>
-      </details>
-      <div style="font-family:var(--mono);font-size:12.5px;font-weight:600;margin:12px 0 5px;color:var(--ink)">
-        T = A₁·A₂<span id="a3lbl">·A₃</span>
-      </div>
-      <div class="mat" id="tmat"></div>
-      <div class="pose" id="poseRow"></div>
-      <p class="hint">Cột tịnh tiến của <b>T</b> (màu cam) = tọa độ bàn tay trên hình — cầu nối giữa bảng thông số D–H và chuyển động thực. Nhân A₁·A₂·A₃ ra đúng cột đó — xem từng bước ở thẻ “Cách tính động học thuận”.</p>
-    </div>
-
    </div>
    <div class="col">
     <div class="card" id="kinCardFK">
@@ -329,13 +341,61 @@
       <div class="eyebrow">Jacobian &amp; động học nghịch bằng lặp số</div>
       <div id="kinJac"></div>
     </div>
+
+    <div class="card" id="kinCardTraj" hidden>
+      <div class="eyebrow">Tính toán quỹ đạo · luật thời gian s(t) → q(t)</div>
+      <div class="rowbtns" style="margin-top:0">
+        <button class="btn" data-law="cubic">Đa thức bậc 3</button>
+        <button class="btn" data-law="quintic">Đa thức bậc 5</button>
+        <button class="btn" data-law="lspb">Hình thang vận tốc</button>
+      </div>
+      <div id="tlSlider"></div>
+      <details open class="explain">
+        <summary>Hai cách lập quỹ đạo</summary>
+        <div id="trajTheory"></div>
+      </details>
+      <details open class="explain" style="margin-top:8px">
+        <summary>Luật thời gian: công thức &amp; đồ thị</summary>
+        <div id="trajLaw"></div>
+      </details>
+      <details open class="explain" style="margin-top:8px">
+        <summary>Góc khớp &amp; vận tốc khớp theo thời gian</summary>
+        <div id="trajJoint"></div>
+      </details>
+      <details open class="explain" style="margin-top:8px">
+        <summary>Ví dụ số: điểm → điểm trong không gian khớp</summary>
+        <div id="trajNum"></div>
+      </details>
+      <details class="explain" style="margin-top:8px">
+        <summary>Code mẫu cho sinh viên</summary>
+        <div class="codebar">
+          <button class="btn on" data-lang="py">Python</button>
+          <button class="btn" data-lang="m">MATLAB</button>
+          <span class="grow"></span>
+          <button class="btn" id="codeCopy">Sao chép</button>
+          <button class="btn" id="codeSave">Tải về</button>
+        </div>
+        <p class="hint" id="codeNote"></p>
+        <pre class="code" id="trajCode"></pre>
+      </details>
+      <details class="explain" style="margin-top:8px">
+        <summary>Bài tập gợi ý</summary>
+        <ul>
+          <li>Chạy code với <b>LAW</b> = "cubic", "quintic", "lspb". So sánh vận tốc khớp lớn nhất và gia tốc ở hai đầu.</li>
+          <li>Giảm <b>T</b> còn một nửa: vận tốc tăng mấy lần? gia tốc tăng mấy lần? (gợi ý: q̇ ~ 1/T, q̈ ~ 1/T²)</li>
+          <li>Tự giải tay hệ 4 phương trình của đa thức bậc 3 với q̇(0) = v₀, q̇(T) = v<sub>f</sub> khác 0.</li>
+          <li>Kéo điểm B tới gần biên vùng làm việc rồi so sánh θ̇ của nội suy khớp và nội suy Đề-các. Vì sao nội suy Đề-các có thể cần vận tốc khớp rất lớn?</li>
+          <li>Mở rộng code cho robot 3R với hướng φ của bàn tay cũng được nội suy theo s(t).</li>
+        </ul>
+      </details>
+    </div>
    </div>
   </div>
 </div>
 
 <footer>
   <div class="l"><a href="https://github.com/phatcvo/" style="color:inherit">phatcvo</a></div>
-  <div class="r">v1.16</div>
+  <div class="r">v1.17</div>
 </footer>
 
 <script>
@@ -356,6 +416,7 @@ const S={mode:"fk",dof:2,robot:"planar",showFrames:false,showArcs:true,elbow:+1,
     tgt:{x:0.9,y:0.45,z:0.25,az:20*Math.PI/180,el:-35*Math.PI/180,roll:0}, step:0, anim:null, raf:0,
     tr:{shape:null, strokes:null, samples:[], idx:0, trail:[], playing:false}},
   jac:{alpha:0.5, lam:0.06, it:[], path:[], n:0, play:false},
+  tl:{law:"quintic", T:2}, lang:"py",
   a:[1.2,1.2,0.9], th:[30*Math.PI/180,40*Math.PI/180,-20*Math.PI/180],
   target:{x:1.6,y:1.2}, reachable:true, cursor:null,
   samples:[], strokes:null, sIdx:0, trail:[], playing:false, shape:null, kin:"fk",
@@ -376,7 +437,7 @@ const ROBOTS={
     step:()=>S.step, goStep:(i,an)=>stepGo(i,an), stepPanels:()=>stepPanels(),
     stepZero:()=>{S.step=0;}, stepEnter:()=>applyIKStep(false),     // vào tab nghịch: cập nhật cả badge tầm với
     stepAutoplay:()=>stepGo(S.step>=stepLimit(stepIds(),ikStepData())?0:S.step+1,true),
-    setShape:n=>setShapePlanar(n), shape:()=>S.shape, trajEnter:()=>{},
+    setShape:n=>setShapePlanar(n), shape:()=>S.shape, trajEnter:()=>{if(S.shape)setShapePlanar(S.shape);},
     trajToggle:()=>trajTogglePlanar(), trajClear:()=>trajClearPlanar(),
     dhBody:()=>planarDhBody(), dhSub:()=>dhSubHTML(), fkHTML:()=>fkHTML(),
     ikExplain:()=>ikExplainPlanarHTML(), ikFig:()=>ikFigSVG(), ikHTML:()=>ikHTML(),
@@ -552,6 +613,7 @@ function updatePanels(){
   if(S.mode==="ik")R().stepPanels();
   if(S.kin==="fk")setHTML("kinFK",R().fkHTML());
   else if(S.kin==="jac")setHTML("kinJac",jacHTML());
+  else if(S.kin==="traj")trajPanels();
   else{setExplain(R().ikExplain());
     if(R().ikFig)setHTML("ikFig",R().ikFig());
     setHTML("kinIKsteps",R().ikHTML());}}
@@ -868,7 +930,7 @@ function ikHTML(){
 
 function setKin(k){S.kin=k;   // thẻ cách tính đi theo chế độ: thuận ở tab thuận, nghịch ở tab nghịch/quỹ đạo
   document.getElementById("kinCardFK").hidden=k!=="fk";document.getElementById("kinCardIK").hidden=k!=="ik";
-  document.getElementById("kinCardJac").hidden=k!=="jac";
+  document.getElementById("kinCardJac").hidden=k!=="jac";document.getElementById("kinCardTraj").hidden=k!=="traj";
   updatePanels();}
 
 // ---------- sliders ----------
@@ -882,7 +944,9 @@ function buildSlidersPlanar(){
   if(S.mode==="jac"){box.appendChild(sEl("α (hệ số học)",0.05,1,S.jac.alpha,"","",v=>{S.jac.alpha=v;updatePanels();},false,0.05));
     box.appendChild(sEl("λ (DLS)",0.01,0.4,S.jac.lam,"","",v=>{S.jac.lam=v;updatePanels();},false,0.01));}}
 // đổi điểm đích / kích thước ⇒ giải lại theo chế độ đang mở
-function retarget(){if(S.mode==="ik")applyIKStep(false);else render();}
+function retarget(){if(S.mode==="ik")applyIKStep(false);
+  else if(S.mode==="traj"&&S.shape==="p2p"&&!S.playing)setShapePlanar("p2p");   // q₀, q_f đổi theo chiều dài khâu
+  else render();}
 function sEl(name,min,max,val,unit,cls,cb,dis,step){const w=document.createElement("div");w.className="slider";
   const lab=document.createElement("div");lab.className="lab";
   lab.innerHTML=`<b>${name}</b><span class="val">${(+val).toFixed(step?2:0)}${unit}</span>`;
@@ -1249,7 +1313,7 @@ function applyMode(){const ik=S.mode==="ik";
   if(ik)R().stepZero();
   document.getElementById("stepCard").hidden=!ik;
   document.getElementById("stepTitle").textContent=R().tenIK+" · từ bảng thông số D–H";
-  setKin(S.mode==="fk"?"fk":S.mode==="jac"?"jac":"ik");
+  setKin(S.mode==="fk"||S.mode==="jac"||S.mode==="traj"?S.mode:"ik");
   Object.values(ROBOTS).map(r=>r.ctrlIK).forEach(id=>{document.getElementById(id).style.display=(ik&&R().ctrlIK===id)?"flex":"none";});
   document.getElementById("jacctrl").style.display=S.mode==="jac"?"flex":"none";
   document.getElementById("trajctrl").style.display=S.mode==="traj"?"flex":"none";
@@ -1316,7 +1380,7 @@ function starStroke(cx,cy,R,r,n){const s=[];for(let i=0;i<=2*n;i++){const rr=i%2
 function wordStrokes(word,startX,baseY,cw,ch,gap){const out=[];let x=startX;
   for(const ch0 of word){const def=LET[ch0]||[];for(const st of def){out.push(st.map(p=>({x:x+p[0]*cw,y:baseY+p[1]*ch})));}x+=cw+gap;}return out;}
 function buildShape(name){
-  if(name==="line")return [[{x:0.6,y:1.65},{x:1.95,y:0.5}]];
+  if(name==="line"||name==="p2p")return [[{x:0.6,y:1.65},{x:1.95,y:0.5}]];   // p2p: vẽ đường thẳng đứt để so sánh
   if(name==="circle")return [circleStroke(1.2,0.95,0.62,44)];
   if(name==="star")return [starStroke(1.15,0.98,0.62,0.26,5)];
   if(name==="word")return wordStrokes("ARM",0.42,0.55,0.4,0.6,0.14);
@@ -1331,7 +1395,8 @@ function buildSamples(strokes,perUnit){const out=[];
 function markShape(name){document.querySelectorAll("[data-shape]").forEach(b=>b.classList.toggle("sel",b.dataset.shape===name));}
 function setShape(name){R().setShape(name);}
 function setShapePlanar(name){
-  S.shape=name;S.strokes=buildShape(name);S.samples=buildSamples(S.strokes,34);
+  S.shape=name;S.strokes=buildShape(name);
+  S.samples=(name==="line"||name==="p2p")?timedSamples(name):buildSamples(S.strokes,34);
   S.sIdx=0;S.trail=[];S.playing=false;document.getElementById("trajPlay").textContent="▶ Chạy";
   markShape(name);render();}
 document.querySelectorAll("[data-shape]").forEach(b=>b.addEventListener("click",()=>setShape(b.dataset.shape)));
@@ -1345,15 +1410,382 @@ function trajTogglePlanar(){
 function animate(){if(!S.playing)return;
   if(S.sIdx>=S.samples.length){S.playing=false;document.getElementById("trajPlay").textContent="▶ Chạy";render();return;}
   const q=S.samples[S.sIdx++];S.target.x=q.x;S.target.y=q.y;S.cursor=null;
-  const sol=solveIK(q.x,q.y);
+  const sol=q.q||solveIK(q.x,q.y);   // p2p: góc khớp có sẵn từ đa thức, không cần giải nghịch
   if(sol){for(let i=0;i<S.dof;i++)S.th[i]=sol[i];S.reachable=true;S.trail.push({x:q.x,y:q.y,pen:q.pen});}
   else{S.reachable=false;S.trail.push({x:q.x,y:q.y,pen:false});}
   syncThetaSliders();render();requestAnimationFrame(animate);}
 
+// ---------- tính toán quỹ đạo: luật thời gian s(t), đồ thị, ví dụ số, code mẫu ----------
+// Hoạt cảnh chạy 1 mẫu mỗi khung hình (≈ 60 khung/s) ⇒ mẫu thứ k ứng với thời điểm t = k/60 s.
+const TL_FPS=60;
+// mỗi luật trả về [s, ds/du, d²s/du²] với u = t/T ∈ [0, 1]; q(t) = q₀ + Δq·s(t/T)
+const TL={
+  cubic:{ten:"Đa thức bậc 3",vmax:1.5,amax:6,
+    f:u=>[3*u*u-2*u**3, 6*u-6*u*u, 6-12*u]},
+  quintic:{ten:"Đa thức bậc 5",vmax:1.875,amax:10/Math.sqrt(3),
+    f:u=>[10*u**3-15*u**4+6*u**5, 30*u*u-60*u**3+30*u**4, 60*u-180*u*u+120*u**3]},
+  lspb:{ten:"Hình thang vận tốc (LSPB)",vmax:1.5,amax:4.5,        // V = 1.5·Δq/T ⇒ t_b = T/3, gia tốc 4.5·Δq/T²
+    f:u=>u<1/3?[2.25*u*u, 4.5*u, 4.5]:u<=2/3?[0.25+1.5*(u-1/3), 1.5, 0]:[1-2.25*(1-u)**2, 4.5*(1-u), -4.5]}};
+const tlEval=u=>TL[S.tl.law].f(Math.max(0,Math.min(1,u)));
+function fkPlanar(q){let ang=0,x=0,y=0;q.forEach((v,i)=>{ang+=v;x+=S.a[i]*Math.cos(ang);y+=S.a[i]*Math.sin(ang);});return{x,y};}
+// hai đầu mút của bài toán điểm → điểm: A, B của đường thẳng, giải nghịch lấy q₀, q_f
+function p2pQ(){const [A,B]=buildShape("line")[0],q0=solveIK(A.x,A.y),qf=solveIK(B.x,B.y);
+  return{A,B,q0,qf,dq:q0&&qf?q0.map((v,i)=>wrapPi(qf[i]-v)):null};}
+// mẫu theo thời gian: "line" nội suy Đề-các p(t) = A + (B−A)·s, "p2p" nội suy khớp q(t) = q₀ + Δq·s
+function timedSamples(name){const N=Math.max(2,Math.round(S.tl.T*TL_FPS)),P=p2pQ(),out=[];
+  for(let k=0;k<=N;k++){const s=tlEval(k/N)[0];
+    if(name==="p2p"&&P.dq){const q=P.q0.map((v,i)=>v+P.dq[i]*s),p=fkPlanar(q);out.push({x:p.x,y:p.y,q,pen:true});}
+    else out.push({x:P.A.x+(P.B.x-P.A.x)*s,y:P.A.y+(P.B.y-P.A.y)*s,pen:true});}
+  return out;}
+function setLaw(law){S.tl.law=law;tlRefresh();}
+function tlRefresh(){document.querySelectorAll("[data-law]").forEach(b=>b.classList.toggle("on",b.dataset.law===S.tl.law));
+  if(S.robot==="planar"&&(S.shape==="line"||S.shape==="p2p"))setShapePlanar(S.shape);else render();}
+document.querySelectorAll("[data-law]").forEach(b=>b.addEventListener("click",()=>setLaw(b.dataset.law)));
+document.getElementById("tlSlider").appendChild(sEl("T (thời gian chuyển động, s)",0.5,6,S.tl.T,"","",v=>{S.tl.T=v;tlRefresh();},false,0.1));
+document.querySelectorAll("[data-law]").forEach(b=>b.classList.toggle("on",b.dataset.law===S.tl.law));
+
+// đồ thị SVG nhỏ: series = [{y:[…], col, dash}], null trong y = đứt đoạn; vạch dọc .tcur = thời điểm hiện tại
+function plotSVG(o){const W=460,H=o.h||116,L=46,Rr=10,Tp=16,B=20,pw=W-L-Rr,ph=H-Tp-B;
+  let lo=Infinity,hi=-Infinity;o.series.forEach(se=>se.y.forEach(v=>{if(v!=null&&isFinite(v)){lo=Math.min(lo,v);hi=Math.max(hi,v);}}));
+  if(o.lo!=null)lo=Math.min(lo,o.lo);if(o.hi!=null)hi=Math.max(hi,o.hi);
+  if(!isFinite(lo)){lo=-1;hi=1;}if(hi-lo<1e-9){hi+=1;lo-=1;}const pad=(hi-lo)*0.08;lo-=pad;hi+=pad;
+  const X=t=>L+(t-o.t0)/(o.t1-o.t0)*pw,Y=v=>Tp+(hi-v)/(hi-lo)*ph;
+  const step=niceStep((hi-lo)/3);let g="";
+  for(let v=Math.ceil(lo/step)*step;v<=hi;v+=step){const y=Y(v).toFixed(1);
+    g+=`<line x1="${L}" x2="${W-Rr}" y1="${y}" y2="${y}" stroke="${Math.abs(v)<step/1e3?"#9FA69A":"#E3E5DE"}"/>`+
+      `<text x="${L-5}" y="${+y+3.5}" text-anchor="end">${fN(v,step<0.1?2:step<1?1:0)}</text>`;}
+  const ts=niceStep((o.t1-o.t0)/5);
+  for(let t=Math.ceil(o.t0/ts)*ts;t<=o.t1+1e-9;t+=ts){const x=X(t).toFixed(1);
+    g+=`<line x1="${x}" x2="${x}" y1="${Tp}" y2="${Tp+ph}" stroke="#EEF0EA"/><text x="${x}" y="${H-5}" text-anchor="middle">${fN(t,ts<1?1:0)}</text>`;}
+  const cur=o.series.map(se=>{let d="",pen=false;
+    se.y.forEach((v,k)=>{if(v==null||!isFinite(v)){pen=false;return;}const t=o.tt?o.tt[k]:o.t0+k*(o.t1-o.t0)/(se.y.length-1);
+      const vv=Math.max(lo,Math.min(hi,v));d+=(pen?"L":"M")+X(t).toFixed(1)+" "+Y(vv).toFixed(1);pen=true;});
+    return `<path d="${d}" fill="none" stroke="${se.col}" stroke-width="1.8"${se.dash?' stroke-dasharray="5 3"':""}/>`;}).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" font-family="IBM Plex Mono,Consolas,monospace" font-size="10" fill="#5A5F57" role="img" aria-label="${o.title}">`+
+    `<text x="${L}" y="11" font-size="11" font-weight="600" fill="#1B1D1A">${o.title}</text>`+g+
+    `<rect x="${L}" y="${Tp}" width="${pw}" height="${ph}" fill="none" stroke="#D5D8CF"/>`+cur+
+    `<line class="tcur" data-t0="${o.t0}" data-t1="${o.t1}" data-l="${L}" data-pw="${pw}" x1="-9" x2="-9" y1="${Tp}" y2="${Tp+ph}" stroke="#C8660E" stroke-width="1.4" stroke-dasharray="3 2"/></svg>`;}
+function niceStep(r){const p=Math.pow(10,Math.floor(Math.log10(r))),m=r/p;return(m<1.5?1:m<3.5?2:m<7.5?5:10)*p;}
+function moveCursor(boxId,t){document.querySelectorAll("#"+boxId+" .tcur").forEach(l=>{const d=l.dataset;
+  const x=t==null?-9:+d.l+(t-d.t0)/(d.t1-d.t0)*d.pw;l.setAttribute("x1",x);l.setAttribute("x2",x);});}
+const PLEG=items=>`<div class="plotleg">${items.map(([c,t,d])=>`<span style="color:${c}"><i class="${d?"d":""}" style="${d?"":"background:"+c}"></i><span style="color:var(--muted)">${t}</span></span>`).join("")}</div>`;
+
+const Q0="<i>q</i>₀",QF="<i>q</i><sub>f</sub>",DQ="Δ<i>q</i>",TT="<i>T</i>",TI="<i>t</i>";
+function trajTheoryHTML(){return TX("Quỹ đạo = <b>đường đi</b> (đi qua những điểm nào) + <b>luật thời gian</b> (đi nhanh chậm ra sao). Cùng một luật s(t) đi từ 0 đến 1 dùng được cho cả hai cách:")+
+  `<div class="method first">① Nội suy trong không gian khớp <small>— nút “Điểm → điểm (khớp)”</small></div>`+
+  `<div class="flow"><span class="chip">A, B</span><span class="arr">→</span><span class="chip q">IK hai đầu: ${Q0}, ${QF}</span><span class="arr">→</span><span class="chip">q(t) = ${Q0} + ${DQ}·s(t)</span><span class="arr">→</span><span class="chip opt">FK để vẽ</span></div>`+
+  TX("Chỉ giải nghịch 2 lần, khớp chạy êm, không đi qua điểm kỳ dị giữa đường. Nhưng bàn tay đi theo <b>đường cong</b>, không phải đường thẳng AB.")+
+  `<div class="method">② Nội suy trong không gian Đề-các <small>— nút “Đường thẳng”, “Đường tròn”…</small></div>`+
+  `<div class="flow"><span class="chip">p(t) = A + (B − A)·s(t)</span><span class="arr">→</span><span class="chip q">IK tại từng điểm</span><span class="arr">→</span><span class="chip">q(t)</span></div>`+
+  TX("Bàn tay đi đúng đường thẳng (hàn, cắt, vẽ). Phải giải nghịch ở mọi mẫu; gần biên vùng làm việc hoặc điểm kỳ dị, vận tốc khớp có thể vọt lên rất lớn.");}
+
+function lawFormulaHTML(){const law=S.tl.law,T=S.tl.T;let h="";
+  if(law==="cubic"){
+    h+=`<div class="fxbox fx">`+LN(`<i>q</i>(${TI}) = <i>a</i>₀ + <i>a</i>₁${TI} + <i>a</i>₂${TI}² + <i>a</i>₃${TI}³`)+
+      TX("4 hệ số ⇐ 4 điều kiện biên: vị trí hai đầu và vận tốc hai đầu bằng 0")+
+      LN(`<i>q</i>(0) = ${Q0},&ensp;<i>q</i>(${TT}) = ${QF},&ensp;<i>q̇</i>(0) = 0,&ensp;<i>q̇</i>(${TT}) = 0`)+
+      LN(`⇒&ensp;<i>a</i>₀ = ${Q0},&ensp;<i>a</i>₁ = 0,&ensp;<i>a</i>₂ = ${FR("3"+DQ,TT+"²")},&ensp;<i>a</i>₃ = −${FR("2"+DQ,TT+"³")}`)+
+      LN(`Chuẩn hóa <i>u</i> = ${TI}/${TT}:&ensp;<i>s</i>(<i>u</i>) = 3<i>u</i>² − 2<i>u</i>³`)+`</div>`+
+      TX(`Vận tốc lớn nhất tại ${TI} = ${TT}/2: <i>q̇</i><sub>max</sub> = 1.5·${DQ}/${TT}. Gia tốc ở hai đầu = ±6${DQ}/${TT}² ≠ 0 ⇒ gia tốc <b>nhảy bậc</b> khi bắt đầu/dừng (xem đồ thị s̈) ⇒ giật, rung cơ khí.`);}
+  else if(law==="quintic"){
+    h+=`<div class="fxbox fx">`+LN(`<i>q</i>(${TI}) = <i>a</i>₀ + <i>a</i>₁${TI} + <i>a</i>₂${TI}² + <i>a</i>₃${TI}³ + <i>a</i>₄${TI}⁴ + <i>a</i>₅${TI}⁵`)+
+      TX("6 hệ số ⇐ thêm 2 điều kiện: gia tốc hai đầu bằng 0")+
+      LN(`<i>q</i>, <i>q̇</i>, <i>q̈</i> tại 0 = (${Q0}, 0, 0);&ensp;tại ${TT} = (${QF}, 0, 0)`)+
+      LN(`⇒&ensp;<i>a</i>₀ = ${Q0},&ensp;<i>a</i>₁ = <i>a</i>₂ = 0,&ensp;<i>a</i>₃ = ${FR("10"+DQ,TT+"³")},&ensp;<i>a</i>₄ = −${FR("15"+DQ,TT+"⁴")},&ensp;<i>a</i>₅ = ${FR("6"+DQ,TT+"⁵")}`)+
+      LN(`Chuẩn hóa:&ensp;<i>s</i>(<i>u</i>) = 10<i>u</i>³ − 15<i>u</i>⁴ + 6<i>u</i>⁵`)+`</div>`+
+      TX(`<i>q̇</i><sub>max</sub> = 1.875·${DQ}/${TT} (lớn hơn bậc 3 một chút), đổi lại gia tốc <b>liên tục</b>, bằng 0 ở hai đầu ⇒ chuyển động êm. Đây là lựa chọn mặc định của nhiều bộ điều khiển.`);}
+  else{
+    h+=`<div class="fxbox fx">`+TX("Ba đoạn: tăng tốc đều (parabol) → vận tốc không đổi <i>V</i> (tuyến tính) → giảm tốc đều. Chọn <i>V</i>, suy ra thời gian tăng tốc:")+
+      LN(`<i>t</i><sub>b</sub> = ${FR(Q0+" − "+QF+" + <i>V</i>"+TT,"<i>V</i>")},&emsp;điều kiện&ensp;${FR(DQ,TT)} &lt; <i>V</i> ≤ ${FR("2"+DQ,TT)}`)+
+      LN(`Ở đây <i>V</i> = 1.5·${DQ}/${TT} ⇒ <i>t</i><sub>b</sub> = ${TT}/3,&ensp;gia tốc <i>α</i> = <i>V</i>/<i>t</i><sub>b</sub> = 4.5·${DQ}/${TT}²`)+
+      LN(`<i>q</i>(${TI}) = ${Q0} + ½<i>α</i>${TI}²&emsp;&emsp;&emsp;&emsp;&ensp;0 ≤ ${TI} &lt; <i>t</i><sub>b</sub>`)+
+      LN(`<i>q</i>(${TI}) = ${Q0} + <i>V</i>(${TI} − <i>t</i><sub>b</sub>/2)&emsp;&emsp;<i>t</i><sub>b</sub> ≤ ${TI} ≤ ${TT} − <i>t</i><sub>b</sub>`)+
+      LN(`<i>q</i>(${TI}) = ${QF} − ½<i>α</i>(${TT} − ${TI})²&emsp;&ensp;${TT} − <i>t</i><sub>b</sub> &lt; ${TI} ≤ ${TT}`)+`</div>`+
+      TX("Vận tốc có dạng hình thang, gia tốc là hằng số từng đoạn: gia tốc nhỏ nhất trong ba luật với cùng T, nhưng vẫn nhảy bậc ở 4 thời điểm.");}
+  // đồ thị s, ṡ, s̈ theo thời gian thực t ∈ [−8%T, T + 8%T] để thấy chỗ nhảy bậc ở hai đầu
+  const n=160,t0=-0.08*T,t1=1.08*T,tt=[],y=[[],[],[]];
+  for(let k=0;k<=n;k++){const t=t0+(t1-t0)*k/n;tt.push(t);
+    const r=t<0?[0,0,0]:t>T?[1,0,0]:tlEval(t/T);y[0].push(r[0]);y[1].push(r[1]/T);y[2].push(r[2]/(T*T));}
+  const L=TL[law];
+  h+=`<div class="plot" id="lawPlot">`+
+    plotSVG({title:"s(t) — vị trí chuẩn hóa (0 → 1)",t0,t1,tt,series:[{y:y[0],col:COL.blue}],lo:0,hi:1,h:104})+
+    plotSVG({title:"ṡ(t) — vận tốc (1/s)",t0,t1,tt,series:[{y:y[1],col:COL.sky}],lo:0,h:104})+
+    plotSVG({title:"s̈(t) — gia tốc (1/s²)",t0,t1,tt,series:[{y:y[2],col:COL.amber}],h:104})+`</div>`+
+    `<div class="pose">`+[["T",fN(T,1)+" s"],["ṡ max",fN(L.vmax/T,3)+" /s"],["|s̈| max",fN(L.amax/(T*T),3)+" /s²"]]
+      .map(([k,v])=>`<div class="stat"><div class="k">${k}</div><div class="v" style="font-size:15px">${v}</div></div>`).join("")+`</div>`+
+    TX(`Nhân với ${DQ} của từng khớp (hoặc với độ dài |AB| khi nội suy Đề-các) để ra vận tốc, gia tốc thật. Đường chấm cam = thời điểm robot đang ở khi bấm Chạy.`);
+  return h;}
+
+// chuỗi góc khớp của quỹ đạo đang chọn — robot phẳng
+function trajJointHTML(){
+  if(S.robot!=="planar")return TX("Đồ thị góc khớp và ví dụ số dành cho robot phẳng 2R/3R. Robot 6 khâu vẫn dùng đúng luật thời gian ở trên cho từng khớp.");
+  if(!S.samples.length)return TX("Chọn một hình ở hàng nút phía trên để xem θᵢ(t).");
+  const n=S.dof,sm=S.samples,dt=1/TL_FPS,th=[...Array(n)].map(()=>[]),om=[...Array(n)].map(()=>[]);
+  let prev=null,bad=0;
+  sm.forEach((p,k)=>{const q=p.q||solveIK(p.x,p.y);if(!q)bad++;
+    for(let i=0;i<n;i++){th[i].push(q?wrapPi(q[i])*R2D:null);
+      om[i].push(q&&prev&&p.pen&&sm[k-1].pen?wrapPi(q[i]-prev[i])/dt*R2D:null);}
+    prev=q;});
+  for(let i=0;i<n;i++)om[i][0]=om[i][1]??null;
+  const t1=(sm.length-1)*dt,cols=[COL.blue,COL.sky,COL.amber];
+  const p2p=S.shape==="p2p",timed=p2p||S.shape==="line";
+  let wmax=0;om.forEach(a=>a.forEach(v=>{if(v!=null)wmax=Math.max(wmax,Math.abs(v));}));
+  return TX(p2p?"Nội suy khớp: mỗi θᵢ(t) chính là đa thức/hình thang của luật đã chọn — cùng dạng với s(t), chỉ khác biên độ Δθᵢ."
+      :timed?"Nội suy Đề-các: bàn tay đi thẳng theo s(t) nhưng θᵢ(t) là kết quả giải nghịch — không còn là đa thức."
+      :"Hình này lấy mẫu đều theo quãng đường (tốc độ bàn tay không đổi) — chưa dùng luật thời gian nên vận tốc khớp nhảy bậc ở đầu mỗi nét.")+
+    PLEG([...Array(n).keys()].map(i=>[cols[i],"θ"+SB[i]]))+
+    `<div class="plot" id="jointPlot">`+
+    plotSVG({title:"θᵢ(t) — góc khớp (°)",t0:0,t1,series:th.map((y,i)=>({y,col:cols[i]})),h:124})+
+    plotSVG({title:"θ̇ᵢ(t) — vận tốc khớp (°/s, sai phân)",t0:0,t1,series:om.map((y,i)=>({y,col:cols[i]})),lo:0,h:124})+`</div>`+
+    `<div class="pose">`+[["số mẫu",sm.length],["thời gian",fN(t1,2)+" s"],["|θ̇| max",fN(wmax,0)+" °/s"]]
+      .map(([k,v])=>`<div class="stat"><div class="k">${k}</div><div class="v" style="font-size:15px">${v}</div></div>`).join("")+`</div>`+
+    (bad?TX(`<span class="fail">${bad} mẫu ngoài vùng làm việc</span> — đường đồ thị bị đứt ở đó.`):"");}
+
+function trajNumHTML(){if(S.robot!=="planar")return "";
+  const P=p2pQ(),T=S.tl.T,law=S.tl.law,n=S.dof;
+  if(!P.dq)return TX(`<span class="fail">A hoặc B nằm ngoài vùng làm việc</span> với chiều dài khâu hiện tại — tăng a₁, a₂.`);
+  const r=v=>fN(v,4);
+  let h=`<div class="fxbox fx">`+TX(`Bàn tay đi từ A = (${fN(P.A.x,2)}, ${fN(P.A.y,2)}) tới B = (${fN(P.B.x,2)}, ${fN(P.B.y,2)}) trong ${TT} = ${fN(T,2)} s.`+
+    (n===3?` Hướng φ = ${fD(S.phi,0)} giữ nguyên.`:"")+` Giải nghịch (${S.elbow>0?"elbow-up":"elbow-down"}) hai đầu:`)+
+    [...Array(n).keys()].map(i=>LN(`θ${SB[i]}: ${Q0} = ${r(P.q0[i])} rad (${fD(P.q0[i])}) → ${QF} = ${r(P.q0[i]+P.dq[i])} rad (${fD(P.q0[i]+P.dq[i])}),&ensp;${DQ} = <b>${r(P.dq[i])}</b>`)).join("")+`</div>`;
+  const cols=law==="cubic"?["a₀","a₂","a₃"]:law==="quintic"?["a₀","a₃","a₄","a₅"]:["q₀","V (rad/s)","α (rad/s²)","t_b (s)"];
+  const row=i=>{const q0=P.q0[i],d=P.dq[i];
+    return law==="cubic"?[q0,3*d/T**2,-2*d/T**3]:law==="quintic"?[q0,10*d/T**3,-15*d/T**4,6*d/T**5]:[q0,1.5*d/T,4.5*d/T**2,T/3];};
+  h+=TX(law==="lspb"?"Thông số hình thang của từng khớp (a₁ = 0 vì xuất phát từ đứng yên):":"Hệ số đa thức (rad) — các hệ số không ghi bằng 0:")+
+    `<table class="dh num"><thead><tr><th>khớp</th>${cols.map(c=>`<th>${c}</th>`).join("")}</tr></thead><tbody>`+
+    [...Array(n).keys()].map(i=>`<tr><td>θ${SB[i]}</td>${row(i).map(v=>`<td>${r(v)}</td>`).join("")}</tr>`).join("")+`</tbody></table>`;
+  if(law!=="lspb"){const pw=law==="cubic"?[0,2,3]:[0,3,4,5];
+    h+=`<div class="fxbox fx" style="margin-top:8px">`+[...Array(n).keys()].map(i=>
+      LN(`θ${SB[i]}(${TI}) = `+sumS(row(i).map((v,j)=>[v,pw[j]]),([v,p])=>fN(v,4)+(p?`${TI}<sup>${p}</sup>`:"")))).join("")+`</div>`;}
+  const tm=T/2,sm=tlEval(0.5)[0],vm=tlEval(0.5)[1]/T;
+  h+=`<div class="fxbox fx">`+TX(`Kiểm tra tại ${TI} = ${TT}/2 = ${fN(tm,2)} s: s = ${fN(sm,3)}, ṡ = ${fN(vm,3)} /s`)+
+    [...Array(n).keys()].map(i=>LN(`θ${SB[i]} = ${r(P.q0[i])} + (${r(P.dq[i])})·${fN(sm,3)} = <b>${r(P.q0[i]+P.dq[i]*sm)}</b> rad,&ensp;θ̇${SB[i]} = <b>${r(P.dq[i]*vm)}</b> rad/s`)).join("")+`</div>`+
+    TX("Bấm “Điểm → điểm (khớp)” rồi Chạy: đường cam là đường bàn tay thật, đường đứt xám là đoạn thẳng AB. Đổi sang “Đường thẳng” để thấy nội suy Đề-các bám đúng AB.");
+  return h;}
+
+// ---- code mẫu: sinh theo thông số hiện tại (a₁, a₂, T, luật, nhánh khuỷu) ----
+function codeParams(){const P=p2pQ();return{a1:S.a[0].toFixed(2),a2:S.a[1].toFixed(2),T:S.tl.T.toFixed(2),law:S.tl.law,
+  el:S.elbow>0?"+1":"-1",Ax:P.A.x.toFixed(2),Ay:P.A.y.toFixed(2),Bx:P.B.x.toFixed(2),By:P.B.y.toFixed(2)};}
+function codePy(c){return String.raw`# Quỹ đạo cho robot phẳng 2R — nội suy khớp và nội suy Đề-các
+# Chạy: pip install numpy matplotlib  →  python quy_dao_2R.py
+import numpy as np
+import matplotlib.pyplot as plt
+
+# ---------- 1. Thông số ----------
+a1, a2 = ${c.a1}, ${c.a2}          # chiều dài khâu (bảng D–H: a₁, a₂)
+T = ${c.T}                     # thời gian chuyển động (s)
+A = np.array([${c.Ax}, ${c.Ay}])   # điểm đầu (x, y)
+B = np.array([${c.Bx}, ${c.By}])   # điểm cuối (x, y)
+elbow = ${c.el}                   # σ = +1: elbow-up, −1: elbow-down
+LAW = "${c.law}"              # "cubic" | "quintic" | "lspb"
+t = np.linspace(0, T, 201)
+
+# ---------- 2. Luật thời gian s(t): 0 → 1, trả về (s, ṡ, s̈) ----------
+def cubic(t, T):
+    # q(0)=q0, q(T)=qf, q̇(0)=q̇(T)=0  ⇒  s = 3u² − 2u³
+    u = t / T
+    return 3*u**2 - 2*u**3, (6*u - 6*u**2) / T, (6 - 12*u) / T**2
+
+def quintic(t, T):
+    # thêm q̈(0)=q̈(T)=0  ⇒  s = 10u³ − 15u⁴ + 6u⁵
+    u = t / T
+    return (10*u**3 - 15*u**4 + 6*u**5,
+            (30*u**2 - 60*u**3 + 30*u**4) / T,
+            (60*u - 180*u**2 + 120*u**3) / T**2)
+
+def lspb(t, T, V=1.5):
+    # hình thang vận tốc: vận tốc đỉnh V·(Δ/T), thời gian tăng tốc tb = T − 1/V
+    V = V / T
+    tb = T - 1 / V                                   # V = 1.5/T  ⇒  tb = T/3
+    acc = V / tb
+    s = np.where(t < tb, acc*t**2/2,
+        np.where(t <= T - tb, acc*tb**2/2 + V*(t - tb),
+                 1 - acc*(T - t)**2/2))
+    sd = np.where(t < tb, acc*t, np.where(t <= T - tb, V, acc*(T - t)))
+    sdd = np.where(t < tb, acc, np.where(t <= T - tb, 0.0, -acc))
+    return s, sd, sdd
+
+s, sd, sdd = {"cubic": cubic, "quintic": quintic, "lspb": lspb}[LAW](t, T)
+
+# ---------- 3. Động học 2R ----------
+def fk(q1, q2):
+    x = a1*np.cos(q1) + a2*np.cos(q1 + q2)
+    y = a1*np.sin(q1) + a2*np.sin(q1 + q2)
+    return x, y
+
+def ik(x, y):
+    c2 = (x**2 + y**2 - a1**2 - a2**2) / (2*a1*a2)
+    if abs(c2) > 1:
+        return None                                  # ngoài vùng làm việc
+    q2 = np.arctan2(elbow*np.sqrt(1 - c2**2), c2)
+    q1 = np.arctan2(y, x) - np.arctan2(a2*np.sin(q2), a1 + a2*np.cos(q2))
+    return np.array([q1, q2])
+
+# ---------- 4a. Quỹ đạo trong KHÔNG GIAN KHỚP ----------
+q0, qf = ik(*A), ik(*B)
+dq = qf - q0
+q_j = q0[:, None] + dq[:, None]*s                    # θᵢ(t) = θᵢ₀ + Δθᵢ·s(t)
+qd_j = dq[:, None]*sd                                # θ̇ᵢ(t)
+qdd_j = dq[:, None]*sdd                              # θ̈ᵢ(t)
+x_j, y_j = fk(q_j[0], q_j[1])                         # đường bàn tay: KHÔNG thẳng
+
+# hệ số của từng khớp — in ra để so với bài giải tay
+for i in range(2):
+    d = dq[i]
+    if LAW == "cubic":
+        print(f"khớp {i+1}: a0={q0[i]:.4f}  a1=0  a2={3*d/T**2:.4f}  a3={-2*d/T**3:.4f}")
+    elif LAW == "quintic":
+        print(f"khớp {i+1}: a0={q0[i]:.4f}  a1=a2=0  a3={10*d/T**3:.4f}"
+              f"  a4={-15*d/T**4:.4f}  a5={6*d/T**5:.4f}")
+    else:
+        print(f"khớp {i+1}: tb={T/3:.4f} s  V={1.5*d/T:.4f} rad/s  a={4.5*d/T**2:.4f} rad/s²")
+
+# ---------- 4b. Quỹ đạo trong KHÔNG GIAN ĐỀ-CÁC ----------
+P = A[:, None] + (B - A)[:, None]*s                  # p(t) = A + (B − A)·s(t): đường thẳng
+q_c = np.array([ik(px, py) for px, py in P.T]).T     # giải IK tại từng điểm
+qd_c = np.gradient(q_c, t, axis=1)                   # vận tốc khớp (sai phân)
+
+# ---------- 5. Vẽ ----------
+fig, ax = plt.subplots(2, 2, figsize=(11, 8))
+ax[0, 0].plot(t, s, label="s(t)")
+ax[0, 0].plot(t, sd*T, label="ṡ(t)·T")
+ax[0, 0].plot(t, sdd*T**2/6, label="s̈(t)·T²/6")
+ax[0, 0].set_title(f"Luật thời gian: {LAW}"); ax[0, 0].legend(); ax[0, 0].grid(True)
+
+ax[0, 1].plot(x_j, y_j, label="nội suy khớp")
+ax[0, 1].plot(P[0], P[1], "--", label="nội suy Đề-các")
+for k in range(0, len(t), 40):                       # vài tư thế tay
+    xe, ye = fk(q_j[0, k], q_j[1, k])
+    ax[0, 1].plot([0, a1*np.cos(q_j[0, k]), xe], [0, a1*np.sin(q_j[0, k]), ye], "k-", alpha=0.25)
+ax[0, 1].set_aspect("equal"); ax[0, 1].set_title("Đường đi của bàn tay"); ax[0, 1].legend(); ax[0, 1].grid(True)
+
+for i in range(2):
+    ax[1, 0].plot(t, np.degrees(q_j[i]), label=f"θ{i+1} khớp")
+    ax[1, 0].plot(t, np.degrees(q_c[i]), "--", label=f"θ{i+1} Đề-các")
+ax[1, 0].set_title("Góc khớp (°)"); ax[1, 0].set_xlabel("t (s)"); ax[1, 0].legend(); ax[1, 0].grid(True)
+
+for i in range(2):
+    ax[1, 1].plot(t, np.degrees(qd_j[i]), label=f"θ̇{i+1} khớp")
+    ax[1, 1].plot(t, np.degrees(qd_c[i]), "--", label=f"θ̇{i+1} Đề-các")
+ax[1, 1].set_title("Vận tốc khớp (°/s)"); ax[1, 1].set_xlabel("t (s)"); ax[1, 1].legend(); ax[1, 1].grid(True)
+
+plt.tight_layout()
+plt.show()`;}
+function codeM(c){return String.raw`% Quỹ đạo cho robot phẳng 2R — nội suy khớp và nội suy Đề-các
+clear; clc; close all;
+
+% ---------- 1. Thông số ----------
+a1 = ${c.a1}; a2 = ${c.a2};          % chiều dài khâu (bảng D–H: a1, a2)
+T  = ${c.T};                     % thời gian chuyển động (s)
+A  = [${c.Ax}; ${c.Ay}];             % điểm đầu (x, y)
+B  = [${c.Bx}; ${c.By}];             % điểm cuối (x, y)
+elbow = ${c.el};                    % +1: elbow-up, -1: elbow-down
+LAW = '${c.law}';               % 'cubic' | 'quintic' | 'lspb'
+t  = linspace(0, T, 201);
+
+% ---------- 2. Luật thời gian s(t): 0 -> 1 ----------
+u = t / T;
+switch LAW
+  case 'cubic'     % q(0)=q0, q(T)=qf, q'(0)=q'(T)=0
+    s   = 3*u.^2 - 2*u.^3;
+    sd  = (6*u - 6*u.^2) / T;
+    sdd = (6 - 12*u) / T^2;
+  case 'quintic'   % thêm q''(0)=q''(T)=0
+    s   = 10*u.^3 - 15*u.^4 + 6*u.^5;
+    sd  = (30*u.^2 - 60*u.^3 + 30*u.^4) / T;
+    sdd = (60*u - 180*u.^2 + 120*u.^3) / T^2;
+  case 'lspb'      % hình thang vận tốc: V = 1.5/T, tb = T/3
+    V = 1.5 / T;  tb = T - 1/V;  acc = V / tb;
+    s = zeros(size(t)); sd = s; sdd = s;
+    for k = 1:numel(t)
+      if t(k) < tb
+        s(k) = acc*t(k)^2/2;          sd(k) = acc*t(k);      sdd(k) = acc;
+      elseif t(k) <= T - tb
+        s(k) = acc*tb^2/2 + V*(t(k)-tb); sd(k) = V;          sdd(k) = 0;
+      else
+        s(k) = 1 - acc*(T-t(k))^2/2;  sd(k) = acc*(T-t(k));  sdd(k) = -acc;
+      end
+    end
+end
+
+% ---------- 3. Động học 2R ----------
+fk = @(q1, q2) [a1*cos(q1) + a2*cos(q1+q2); a1*sin(q1) + a2*sin(q1+q2)];
+
+% ---------- 4a. Quỹ đạo trong KHÔNG GIAN KHỚP ----------
+q0 = ik2R(A, a1, a2, elbow);  qf = ik2R(B, a1, a2, elbow);
+dq = qf - q0;
+q_j   = q0 + dq*s;             % theta_i(t) = theta_i0 + dtheta_i*s(t)   (2 x N)
+qd_j  = dq*sd;
+p_j   = fk(q_j(1,:), q_j(2,:)); % đường bàn tay: KHÔNG thẳng
+
+for i = 1:2
+  fprintf('khớp %d: q0 = %.4f rad, dq = %.4f rad\n', i, q0(i), dq(i));
+end
+
+% ---------- 4b. Quỹ đạo trong KHÔNG GIAN ĐỀ-CÁC ----------
+P = A + (B - A)*s;             % p(t) = A + (B-A)*s(t): đường thẳng
+q_c = zeros(2, numel(t));
+for k = 1:numel(t)
+  q_c(:,k) = ik2R(P(:,k), a1, a2, elbow);   % giải IK tại từng điểm
+end
+qd_c = gradient(q_c, t(2)-t(1));            % vận tốc khớp (sai phân)
+
+% ---------- 5. Vẽ ----------
+figure('Position', [100 100 1000 720]);
+subplot(2,2,1); plot(t, s, t, sd*T, t, sdd*T^2/6); grid on;
+title(['Luật thời gian: ' LAW]); legend('s', 'ṡ·T', 's̈·T²/6');
+subplot(2,2,2); plot(p_j(1,:), p_j(2,:), P(1,:), P(2,:), '--'); axis equal; grid on;
+title('Đường đi của bàn tay'); legend('nội suy khớp', 'nội suy Đề-các');
+subplot(2,2,3); plot(t, rad2deg(q_j), t, rad2deg(q_c), '--'); grid on; xlabel('t (s)');
+title('Góc khớp (°)'); legend('θ1 khớp', 'θ2 khớp', 'θ1 Đề-các', 'θ2 Đề-các');
+subplot(2,2,4); plot(t, rad2deg(qd_j), t, rad2deg(qd_c), '--'); grid on; xlabel('t (s)');
+title('Vận tốc khớp (°/s)'); legend('θ̇1 khớp', 'θ̇2 khớp', 'θ̇1 Đề-các', 'θ̇2 Đề-các');
+
+% ---------- hàm con: động học nghịch 2R (để cuối file script, MATLAB R2016b+) ----------
+function q = ik2R(p, a1, a2, elbow)
+  c2 = (p(1)^2 + p(2)^2 - a1^2 - a2^2) / (2*a1*a2);
+  if abs(c2) > 1, error('Điểm (%.2f, %.2f) ngoài vùng làm việc', p(1), p(2)); end
+  q2 = atan2(elbow*sqrt(1 - c2^2), c2);
+  q1 = atan2(p(2), p(1)) - atan2(a2*sin(q2), a1 + a2*cos(q2));
+  q  = [q1; q2];
+end`;}
+function codeText(){const c=codeParams();return S.lang==="py"?codePy(c):codeM(c);}
+// tô màu chú thích và chuỗi — quét từng dòng, bỏ qua dấu chú thích nằm trong chuỗi
+function hlCode(src,cm){const esc=t=>t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  return src.split("\n").map(line=>{let out="",q=null,buf="";
+    const flush=cls=>{if(buf)out+=cls?`<span class="${cls}">${esc(buf)}</span>`:esc(buf);buf="";};
+    for(let i=0;i<line.length;i++){const ch=line[i];
+      if(q){buf+=ch;if(ch===q){flush("st");q=null;}continue;}
+      if(ch===cm){flush();buf=line.slice(i);flush("cm");break;}
+      if(ch==='"'||(ch==="'"&&(cm==="#"||!/[\w)\]]/.test(line[i-1]||"")))){flush();q=ch;buf=ch;continue;}
+      buf+=ch;}
+    flush(q?"st":null);return out;}).join("\n");}
+function codePanel(){const src=codeText();
+  document.querySelectorAll("[data-lang]").forEach(b=>b.classList.toggle("on",b.dataset.lang===S.lang));
+  setHTML("codeNote",`Code tự điền thông số đang chọn: a₁ = ${S.a[0].toFixed(2)}, a₂ = ${S.a[1].toFixed(2)}, T = ${S.tl.T.toFixed(2)} s, luật “${S.tl.law}”.`+
+    (S.robot==="planar"&&S.dof===3?" Code viết cho 2R — phần mở rộng 3R để làm bài tập.":"")+
+    (S.lang==="py"?" Cần: <code>pip install numpy matplotlib</code>.":" Chạy được từ MATLAB R2016b trở lên (hàm con đặt cuối script)."));
+  setHTML("trajCode",hlCode(src,S.lang==="py"?"#":"%"));}
+document.querySelectorAll("[data-lang]").forEach(b=>b.addEventListener("click",()=>{S.lang=b.dataset.lang;codePanel();}));
+document.getElementById("codeCopy").onclick=()=>{const b=document.getElementById("codeCopy"),done=ok=>{b.textContent=ok?"Đã chép ✓":"Không chép được";setTimeout(()=>b.textContent="Sao chép",1400);};
+  if(navigator.clipboard)navigator.clipboard.writeText(codeText()).then(()=>done(true),()=>done(false));else done(false);};
+document.getElementById("codeSave").onclick=()=>{const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([codeText()],{type:"text/plain;charset=utf-8"}));
+  a.download=S.lang==="py"?"quy_dao_2R.py":"quy_dao_2R.m";document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},0);};
+
+function trajPanels(){
+  setHTML("trajTheory",trajTheoryHTML());setHTML("trajLaw",lawFormulaHTML());
+  setHTML("trajJoint",trajJointHTML());setHTML("trajNum",trajNumHTML());codePanel();
+  // vạch thời điểm hiện tại
+  const pl=S.robot==="planar",k=pl?S.sIdx-1:R().shape()?(S.robot==="elbow"?S.el.tr.idx:S.st.tr.idx)-1:-1;
+  const timed=pl&&(S.shape==="line"||S.shape==="p2p")&&k>=0;
+  moveCursor("lawPlot",timed?k/TL_FPS:null);moveCursor("jointPlot",pl&&k>=0?k/TL_FPS:null);}
+
 function setHint(){const h={
   fk:"Động học thuận: bảng thông số D–H ▶ ma trận Aᵢ ▶ T đổi theo ▶ θ → (x, y, φ) duy nhất.",
   ik:"Động học nghịch, bắt đầu từ bảng thông số D–H. Bấm Tiếp ▶ (hoặc phím →) để đi tiếp, ▶ (x, y) → θ",
-  traj:"Chọn hình rồi bấm Chạy: robot 'viết chữ' như khi hàn/vẽ.",
+  traj:"Chọn hình rồi bấm Chạy: robot 'viết chữ' như khi hàn/vẽ. Đường thẳng và Điểm → điểm chạy theo luật thời gian chọn ở thẻ Tính toán quỹ đạo — so sánh đường đi của bàn tay khi nội suy khớp và nội suy Đề-các.",
   jac:"Động học nghịch bằng lặp số: mỗi vòng đi một bước Δq = α·J⁻¹·e về phía đích. Đổi α để thấy hội tụ nhanh/chậm; đưa tay về gần duỗi thẳng để thấy det J → 0."};
   const hEl={fk:"Robot ELBOW 6 bậc theo bảng thông số D–H Chương IV. Kéo θ₁…θ₆; kéo chuột trên hình để xoay góc nhìn, lăn chuột để phóng to.",
   ik:"Giải động học nghịch ELBOW từng bước đúng trình tự slide (4-34 → 4-37). Đổi tư thế đích bằng thanh trượt, đổi nhánh bằng ba nút Vai / Khuỷu / Cổ tay.",
