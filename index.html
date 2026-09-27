@@ -195,65 +195,7 @@
 
 <div class="wrap">
   <div class="left">
-    <div class="stage">
-      <canvas id="cv" width="660" height="560"></canvas>
-      <div class="legend" id="legend"></div>
-    </div>
-
-    <div class="card">
-      <div class="eyebrow">Biến khớp &amp; kích thước khâu</div>
-      <div id="sliders"></div>
-    </div>
-
-    <div class="card" id="dhCard">
-      <div class="eyebrow">Bảng thông số D–H (sửa trực tiếp)</div>
-      <table class="dh">
-        <thead><tr><th>Khâu i</th><th>aᵢ</th><th>αᵢ</th><th>dᵢ</th><th>θᵢ* (°)</th></tr></thead>
-        <tbody id="dhbody"></tbody>
-      </table>
-      <p class="hint" style="margin-top:6px"><b>aᵢ</b>: khoảng cách theo x · <b>αᵢ</b>: góc quay quanh x&emsp;|&emsp;<b>dᵢ</b>: khoảng cách theo z · <b>θᵢ</b>: góc quay quanh z<br>* θᵢ là biến của khớp quay; aᵢ, αᵢ, dᵢ là hằng số của khâu. Khớp tịnh tiến (khớp 3 của robot Stanford) thì ngược lại: dᵢ là biến, θᵢ cố định.</p>
-      <details open style="margin-top:10px">
-        <summary>Nhắc lại 4 thông số D–H</summary>
-        <ul>
-          <li><b>a</b> — chiều dài khâu: khoảng cách theo xᵢ.</li>
-          <li><b>α</b> — góc xoắn khâu: góc quay quanh xᵢ.</li>
-          <li><b>d</b> — độ lệch khâu: khoảng cách theo z₍ᵢ₋₁₎.</li>
-          <li><b>θ</b> — góc khớp: góc quay quanh z₍ᵢ₋₁₎ <i>(biến khớp quay)</i>.</li>
-          <li>Robot phẳng ⇒ <b>α = 0, d = 0</b>; chỉ còn θ là biến.</li>
-        </ul>
-      </details>
-      <details open style="margin-top:10px">
-        <summary>Nền tảng: ma trận quay cơ bản → ma trận thuần nhất</summary>
-        <div id="rotBase"></div>
-      </details>
-      <details open style="margin-top:10px">
-        <summary>Công thức D–H: từ một hàng của bảng → ma trận khâu Aᵢ</summary>
-        <div class="fxbox fx" id="dhGeneral"></div>
-        <div class="method" id="dhPlanarLbl">Robot phẳng</div>
-        <div class="fxbox fx" id="dhPlanar"></div>
-        <div class="method" id="dhSubLbl">Thay số từng hàng của bảng</div>
-        <div class="fxbox fx" id="dhsub"></div>
-      </details>
-    </div>
-
-    <div class="card" id="matCard">
-      <div class="eyebrow">Ma trận thuần nhất</div>
-      <details open>
-        <summary>Ma trận từng khâu  Aᵢ</summary>
-        <div class="amx" id="amx" style="margin-top:10px"></div>
-      </details>
-      <div style="font-family:var(--mono);font-size:12.5px;font-weight:600;margin:12px 0 5px;color:var(--ink)">
-        T = A₁·A₂<span id="a3lbl">·A₃</span>
-      </div>
-      <div class="mat" id="tmat"></div>
-      <div class="pose" id="poseRow"></div>
-      <p class="hint">Cột tịnh tiến của <b>T</b> (màu cam) = tọa độ bàn tay trên hình — cầu nối giữa bảng thông số D–H và chuyển động thực. Nhân A₁·A₂·A₃ ra đúng cột đó — xem từng bước ở thẻ “Cách tính động học thuận”.</p>
-    </div>
-  </div>
-
-  <div class="side">
-   <div class="col">
-    <div class="card">
+    <div class="card" id="modeCard">
       <div class="eyebrow">Chế độ mô phỏng</div>
       <div class="tabs">
         <button class="tab active" data-mode="fk">Động học thuận</button>
@@ -302,6 +244,19 @@
       <p class="hint" id="modeHint"></p>
     </div>
 
+    <div class="stage">
+      <canvas id="cv" width="660" height="560"></canvas>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <div class="card">
+      <div class="eyebrow">Biến khớp &amp; kích thước khâu</div>
+      <div id="sliders"></div>
+    </div>
+  </div>
+
+  <div class="side">
+   <div class="col">
     <div class="card" id="stepCard" hidden>
       <div class="eyebrow" id="stepTitle">Động học nghịch từng bước · từ bảng thông số D–H</div>
       <div class="snav">
@@ -316,6 +271,51 @@
       </div>
       <div class="stepper" id="stepList"></div>
       <div id="stepBody"></div>
+    </div>
+
+    <div class="card" id="dhCard">
+      <div class="eyebrow">Bảng thông số D–H (sửa trực tiếp)</div>
+      <table class="dh">
+        <thead><tr><th>Khâu i</th><th>aᵢ</th><th>αᵢ</th><th>dᵢ</th><th>θᵢ* (°)</th></tr></thead>
+        <tbody id="dhbody"></tbody>
+      </table>
+      <p class="hint" style="margin-top:6px"><b>aᵢ</b>: khoảng cách theo x · <b>αᵢ</b>: góc quay quanh x&emsp;|&emsp;<b>dᵢ</b>: khoảng cách theo z · <b>θᵢ</b>: góc quay quanh z<br>* θᵢ là biến của khớp quay; aᵢ, αᵢ, dᵢ là hằng số của khâu. Khớp tịnh tiến (khớp 3 của robot Stanford) thì ngược lại: dᵢ là biến, θᵢ cố định.</p>
+      <details open style="margin-top:10px">
+        <summary>Nhắc lại 4 thông số D–H</summary>
+        <ul>
+          <li><b>a</b> — chiều dài khâu: khoảng cách theo xᵢ.</li>
+          <li><b>α</b> — góc xoắn khâu: góc quay quanh xᵢ.</li>
+          <li><b>d</b> — độ lệch khâu: khoảng cách theo z₍ᵢ₋₁₎.</li>
+          <li><b>θ</b> — góc khớp: góc quay quanh z₍ᵢ₋₁₎ <i>(biến khớp quay)</i>.</li>
+          <li>Robot phẳng ⇒ <b>α = 0, d = 0</b>; chỉ còn θ là biến.</li>
+        </ul>
+      </details>
+      <details open style="margin-top:10px">
+        <summary>Nền tảng: ma trận quay cơ bản → ma trận thuần nhất</summary>
+        <div id="rotBase"></div>
+      </details>
+      <details open style="margin-top:10px">
+        <summary>Công thức D–H: từ một hàng của bảng → ma trận khâu Aᵢ</summary>
+        <div class="fxbox fx" id="dhGeneral"></div>
+        <div class="method" id="dhPlanarLbl">Robot phẳng</div>
+        <div class="fxbox fx" id="dhPlanar"></div>
+        <div class="method" id="dhSubLbl">Thay số từng hàng của bảng</div>
+        <div class="fxbox fx" id="dhsub"></div>
+      </details>
+    </div>
+
+    <div class="card" id="matCard">
+      <div class="eyebrow">Ma trận thuần nhất</div>
+      <details open>
+        <summary>Ma trận từng khâu  Aᵢ</summary>
+        <div class="amx" id="amx" style="margin-top:10px"></div>
+      </details>
+      <div style="font-family:var(--mono);font-size:12.5px;font-weight:600;margin:12px 0 5px;color:var(--ink)">
+        T = A₁·A₂<span id="a3lbl">·A₃</span>
+      </div>
+      <div class="mat" id="tmat"></div>
+      <div class="pose" id="poseRow"></div>
+      <p class="hint">Cột tịnh tiến của <b>T</b> (màu cam) = tọa độ bàn tay trên hình — cầu nối giữa bảng thông số D–H và chuyển động thực. Nhân A₁·A₂·A₃ ra đúng cột đó — xem từng bước ở thẻ “Cách tính động học thuận”.</p>
     </div>
 
    </div>
